@@ -1,0 +1,3 @@
+/home/feras/Documents/fac/lifprojet/src/build/dlib_build/test_for_libpng_build/CMakeFiles/rebuild_cache.dir
+/home/feras/Documents/fac/lifprojet/src/build/dlib_build/test_for_libpng_build/CMakeFiles/libpng_test.dir
+/home/feras/Documents/fac/lifprojet/src/build/dlib_build/test_for_libpng_build/CMakeFiles/edit_cache.dir
