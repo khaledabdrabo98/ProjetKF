@@ -1,0 +1,6 @@
+/home/feras/Documents/fac/lifprojet/projetkf/src/build/CMakeFiles/rebuild_cache.dir
+/home/feras/Documents/fac/lifprojet/projetkf/src/build/CMakeFiles/lifprojet_am4.dir
+/home/feras/Documents/fac/lifprojet/projetkf/src/build/CMakeFiles/edit_cache.dir
+/home/feras/Documents/fac/lifprojet/projetkf/src/build/dlib_build/CMakeFiles/rebuild_cache.dir
+/home/feras/Documents/fac/lifprojet/projetkf/src/build/dlib_build/CMakeFiles/dlib.dir
+/home/feras/Documents/fac/lifprojet/projetkf/src/build/dlib_build/CMakeFiles/edit_cache.dir

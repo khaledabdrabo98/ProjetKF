@@ -1,5 +1,6 @@
 # Ignored files
 ./src/build/*
+./dlib-19.19/*
 # Fichiers générés par le Makefile
 *.o
 hello
