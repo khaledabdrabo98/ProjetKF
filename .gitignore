@@ -1,5 +1,5 @@
 # Ignored files
-./src/build/*
+./src/build
 ./dlib-19.19/*
 ./gkit2light
 # Fichiers générés par le Makefile
