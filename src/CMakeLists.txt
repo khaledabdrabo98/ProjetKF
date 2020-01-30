@@ -36,6 +36,23 @@ cmake_minimum_required(VERSION 2.8.12)
 # Every project needs a name.  We call this the "examples" project.
 project(lifprojet_am4)
 
+INCLUDE( FindPkgConfig )
+
+find_package(SDL2 REQUIRED)
+PKG_SEARCH_MODULE( SDL2IMAGE REQUIRED )
+find_package(OpenGL REQUIRED)
+find_package(GLEW REQUIRED)
+
+
+include_directories(${SDL2_INCLUDE_DIRS})
+
+set(GKIT_CORE_INCLUDE_DIR gKitCore/include)
+set(GKIT_VIEW_INCLUDE_DIR gKitView/include)
+
+file(GLOB GKIT_CORE_SRC gKitCore/*.cpp)
+file(GLOB GKIT_CORE_H gKitCore/include)
+file(GLOB GKIT_VIEW_SRC gKitView/*.cpp)
+file(GLOB GKIT_VIEW_H gKitView/include)
 
 # Tell cmake we will need dlib.  This command will pull in dlib and compile it
 # into your project.  Note that you don't need to compile or install dlib.  All
@@ -66,10 +83,16 @@ add_subdirectory(../dlib-19.19/dlib dlib_build)
 
 find_package(OpenCV QUIET)
    if (OpenCV_FOUND)
-      include_directories(${OpenCV_INCLUDE_DIRS})
+      include_directories(${OpenCV_INCLUDE_DIRS} ${GKIT_CORE_INCLUDE_DIR} ${GKIT_VIEW_INCLUDE_DIR})
 
-      add_executable(lifprojet_am4 main.cpp)
-      target_link_libraries(lifprojet_am4 dlib::dlib ${OpenCV_LIBS} )
+      add_executable(lifprojet_am4 ${GKIT_CORE_SRC} ${GKIT_CORE_INCLUDE_DIR}/draw.h ${GKIT_VIEW_SRC} main.cpp)
+
+      target_link_libraries(
+         lifprojet_am4 dlib::dlib 
+         ${OpenCV_LIBS} ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} 
+         ${GLEW_LIBRARIES} ${SDL2IMAGE_LIBRARIES}
+      )
+
    else()
       message("OpenCV not found, so we won't build lifprojet_am4.")
    endif()
@@ -78,7 +101,7 @@ find_package(OpenCV QUIET)
 # depends on dlib.  You do that with this statement: 
 
 
-target_link_libraries(lifprojet_am4 dlib::dlib)
+target_link_libraries(lifprojet_am4 dlib::dlib )
 
 
 
