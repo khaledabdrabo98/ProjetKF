@@ -33,7 +33,7 @@ void ViewerBasic::help()
 
 int ViewerBasic::init()
 {
-	SDL_SetWindowTitle(m_window, "Chaan");
+	SDL_SetWindowTitle(m_window, "gKit");
     cout<<"==>ViewerBasic"<<endl;
 
 	int major = 0;
@@ -57,20 +57,7 @@ int ViewerBasic::init()
 
 	// etat par defaut openGL
     glClearColor(0.5f, 0.5f, 0.9f, 1);
-//    glClearDepthf(1);
-    //glDepthFunc(GL_LESS);
     glEnable(GL_DEPTH_TEST);
-//    glFrontFace(GL_CCW);
-//    glCullFace(GL_BACK);
-//
-//    if (mb_cullface)
-//        glEnable(GL_CULL_FACE);
-//    else
-//        glDisable(GL_CULL_FACE);        // good for debug
-//    //glEnable(GL_TEXTURE_2D);
-//
-//    //glEnable (GL_BLEND);
-//    //glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     m_camera.lookat( Point(0,0,0), 30 );
     gl.light( Point(0, 20, 20), White() );
@@ -79,6 +66,14 @@ int ViewerBasic::init()
     init_grid();
     init_cube();
     init_quad();
+
+    // OpenCV & dLib
+    loadFaceDetectionModels();
+    initCvCapture();
+   
+   
+    
+    
 
     return 1;
 }
@@ -214,8 +209,81 @@ void ViewerBasic::init_quad()
     m_quad.vertex(  1,  1, 0 );
 }
 
+int ViewerBasic::initCvCapture(){
+    cap = cv::VideoCapture(0);
+    if(!cap.isOpened()){
+        cerr << "Unable to connect to camera" << endl;
+        return 1;
+    }
 
-int ViewerBasic::render( )
+    return 0;
+    
+}
+
+void ViewerBasic::loadFaceDetectionModels(){
+    // Load face detection and pose estimation models.
+    std::cout << "dlib detector load\n";
+
+    try
+    {
+        detector = dlib::get_frontal_face_detector();
+        dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
+    }
+    catch (dlib::serialization_error &e)
+    {
+        cout << "You need dlib's default face landmarking model file to run this example." << endl;
+        cout << "You can get it from the following URL: " << endl;
+        cout << "   http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2" << endl;
+        cout << endl
+             << e.what() << endl;
+    }
+    catch (exception &e)
+    {
+        cout << e.what() << endl;
+    }
+}
+
+int ViewerBasic::doCapture(cv::Mat &out)
+{
+    using namespace dlib;
+    using namespace cv;
+
+    // Lance la capture webcam et stocke le résultat dans une matrice openCV (cv::Mat)
+    try
+    {
+
+        // Grab a frame
+        if (!cap.read(cvMatCam))
+        {
+            return -1;
+        }
+        
+        // Turn OpenCV's Mat into something dlib can deal with.  Note that this just
+        // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
+        // long as temp is valid.  Also don't do anything to temp that would cause it
+        // to reallocate the memory which stores the image as that will make cimg
+        // contain dangling pointers.  This basically means you shouldn't modify temp
+        // while using cimg.
+        cv_image<bgr_pixel> cimg(cvMatCam);
+
+        // Detect faces
+        std::vector<rectangle> faces = detector(cimg);
+        // Find the pose of each face.
+        std::vector<full_object_detection> shapes;
+        for (unsigned long i = 0; i < faces.size(); ++i)
+            shapes.push_back(pose_model(cimg, faces[i]));
+
+    }
+    catch (exception &e)
+    {
+        cout << e.what() << endl;
+    }
+
+
+    return 0;
+}
+
+int ViewerBasic::render()
 {
     // Efface l'ecran
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -223,8 +291,13 @@ int ViewerBasic::render( )
     // Deplace la camera, lumiere, etc.
     manageCameraLight();
 
-    // donne notre camera au shader
+    // Donne notre camera au shader
     gl.camera(m_camera);
+
+    // Lance la capture webcam avec openCV
+    doCapture(cvMatCam);
+
+    draw_quad(Identity()*Scale(5,5,5));
 
     return 1;
 }
@@ -252,6 +325,7 @@ void ViewerBasic::draw_cube(const Transform& T)
 {
 	gl.lighting(true);
 	gl.texture(0);
+    
 	gl.model(T);
 	gl.draw(m_cube);
 }
@@ -260,6 +334,7 @@ void ViewerBasic::draw_quad(const Transform& T)
 {
 	gl.lighting(true);
 	gl.texture(0);
+    gl.texture(cvMat2GLTexture(cvMatCam));
 	gl.model(T);
 	gl.draw(m_quad);
 }
@@ -273,7 +348,8 @@ void ViewerBasic::manageCameraLight()
     unsigned int mb= SDL_GetRelativeMouseState(&mx, &my);
     // deplace la camera
     if((mb & SDL_BUTTON(1)) &&  (mb& SDL_BUTTON(3)))                 // le bouton du milieu est enfonce
-        m_camera.translation( (float) mx / (float) window_width(), (float) my / (float) window_height());         // deplace le point de rotation
+        m_camera.translation( (float) mx / (float) window_width(), 
+                              (float) my / (float) window_height());         // deplace le point de rotation
     else if(mb & SDL_BUTTON(1))                      // le bouton gauche est enfonce
         m_camera.rotation( mx, my);       // tourne autour de l'objet
     else if(mb & SDL_BUTTON(3))                 // le bouton droit est enfonce

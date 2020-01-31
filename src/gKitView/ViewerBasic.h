@@ -22,9 +22,6 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
-
-
-
 class ViewerBasic : public App
 {
 public:
@@ -68,10 +65,16 @@ protected:
     void manageCameraLight();
 
     //! OpenCV
-    int cvCapture(cv::Mat &out);
-    int grabFrame();
     cv::Mat cvMatCam;
-    GLuint cvMatToGL;
+    cv::VideoCapture cap;
+    int initCvCapture();
+    int doCapture(cv::Mat &out);
+
+    //! dLib
+    void loadFaceDetectionModels();
+    dlib::shape_predictor pose_model;
+    dlib::frontal_face_detector detector;
+    
     GLuint cvMat2GLTexture(cv::Mat &image);
     
 };
