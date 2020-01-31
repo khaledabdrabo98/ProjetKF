@@ -6,13 +6,17 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
-#include "Viewer.h"
+#include "ViewerBasic.h"
+#include "program.h"
+#include <thread>
+
 
 
 int main()
 {   
-   Viewer v;
+   
+   ViewerBasic v;
    v.run();
- 
+   
 }
 
