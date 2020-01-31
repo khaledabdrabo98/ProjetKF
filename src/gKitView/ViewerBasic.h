@@ -75,7 +75,11 @@ protected:
     dlib::shape_predictor pose_model;
     dlib::frontal_face_detector detector;
     
-    GLuint cvMat2GLTexture(cv::Mat &image);
+    GLuint texID;
+    GLuint fboID;
+    int initFBO(GLuint &id);
+    int renderToFBO(cv::Mat &cvImage);
+    
     
 };
 

@@ -9,6 +9,8 @@
 
 using namespace std;
 
+#define SCREEN_W 1024
+#define SCREEN_H 768
 
 ViewerBasic::ViewerBasic() : App(1024, 768), mb_cullface(true), mb_wireframe(false), b_draw_grid(true), b_draw_axe(true)
 {
@@ -69,31 +71,31 @@ int ViewerBasic::init()
 
     // OpenCV & dLib
     loadFaceDetectionModels();
+    initFBO(texID);
     initCvCapture();
-   
-   
-    
-    
 
     return 1;
 }
 
+int ViewerBasic::initFBO(GLuint &id){
+    // setup FBO
+    
+    glGenFramebuffers(1, &fboID);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texID, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
-GLuint ViewerBasic::cvMat2GLTexture(cv::Mat& image)
-{
-    if (image.empty())
-    {
-        std::cout << "Empty" << std::endl;
-        return 0;
-    }
 
-    GLuint imageTexture;
-    cv::flip(image, image, 0);
-    // cree la texture openGL
-    GLuint texture;
-    glGenTextures(1, &imageTexture);
-    //glActiveTexture(GL_TEXTURE0 + 100);
-    glBindTexture(GL_TEXTURE_2D, imageTexture);
+int ViewerBasic::renderToFBO(cv::Mat& cvImage){
+     
+    
+    
+    // Notre framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
+   // glViewport(SCREEN_W / 2, SCREEN_H / 2, SCREEN_W, SCREEN_H);
+
+    glBindTexture(GL_TEXTURE_2D, texID);
 
     // fixe les parametres de filtrage par defaut
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -105,18 +107,19 @@ GLuint ViewerBasic::cvMat2GLTexture(cv::Mat& image)
     glTexImage2D(GL_TEXTURE_2D,
                  0,
                  GL_RGB,
-                 image.cols,
-                 image.rows,
+                 cvImage.cols,
+                 cvImage.rows,
                  0,
                  GL_BGR,
                  GL_UNSIGNED_BYTE,
-                 image.ptr());
+                 cvImage.ptr());
 
     // prefiltre la texture
     glGenerateMipmap(GL_TEXTURE_2D);
-    std::cout << "Texture ID : " << imageTexture << "Channels : " << image.channels() << std::endl;
 
-    return imageTexture;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDeleteFramebuffers( 1, &fboID );
 }
 
 
@@ -211,6 +214,8 @@ void ViewerBasic::init_quad()
 
 int ViewerBasic::initCvCapture(){
     cap = cv::VideoCapture(0);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 256);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 256);
     if(!cap.isOpened()){
         cerr << "Unable to connect to camera" << endl;
         return 1;
@@ -257,7 +262,9 @@ int ViewerBasic::doCapture(cv::Mat &out)
         {
             return -1;
         }
+
         
+        cv::flip(cvMatCam, cvMatCam, 0);
         // Turn OpenCV's Mat into something dlib can deal with.  Note that this just
         // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
         // long as temp is valid.  Also don't do anything to temp that would cause it
@@ -285,9 +292,11 @@ int ViewerBasic::doCapture(cv::Mat &out)
 
 int ViewerBasic::render()
 {
+    // Draw only to the bottm-right quarter
+    
     // Efface l'ecran
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    
     // Deplace la camera, lumiere, etc.
     manageCameraLight();
 
@@ -297,8 +306,12 @@ int ViewerBasic::render()
     // Lance la capture webcam avec openCV
     doCapture(cvMatCam);
 
-    draw_quad(Identity()*Scale(5,5,5));
-
+    draw_quad(Identity()*Scale(6.4,4.8,1));
+    
+   
+    renderToFBO(cvMatCam);
+    
+    
     return 1;
 }
 
@@ -333,8 +346,8 @@ void ViewerBasic::draw_cube(const Transform& T)
 void ViewerBasic::draw_quad(const Transform& T)
 {
 	gl.lighting(true);
-	gl.texture(0);
-    gl.texture(cvMat2GLTexture(cvMatCam));
+	gl.texture(texID);
+    // gl.texture(cvMat2GLTexture(cvMatCam));
 	gl.model(T);
 	gl.draw(m_quad);
 }
