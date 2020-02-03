@@ -48,6 +48,8 @@ protected:
     Mesh m_grid;
     Mesh m_cube;
 
+    GLuint m_tex_debug;
+
     bool b_draw_grid;
     bool b_draw_axe;
     void init_axe();
@@ -60,7 +62,7 @@ protected:
     void draw_axe(const Transform& T);
 	void draw_grid(const Transform& T);
 	void draw_cube(const Transform& T);
-	void draw_quad(const Transform& T);
+	void draw_quad(const Transform& T, const GLuint &Tex);
 
     void manageCameraLight();
 

@@ -5,7 +5,9 @@
 
 
 
+
 #include <ViewerBasic.h>
+#include <fbxsdk.h>
 
 using namespace std;
 
@@ -58,7 +60,8 @@ int ViewerBasic::init()
 	if (txt) cout << "OpenGl Shading Language Version " << (const char*)txt << endl;
 
 	// etat par defaut openGL
-    glClearColor(0.5f, 0.5f, 0.9f, 1);
+    //glClearColor(0.5f, 0.5f, 0.9f, 1);
+   
     glEnable(GL_DEPTH_TEST);
 
     m_camera.lookat( Point(0,0,0), 30 );
@@ -69,7 +72,9 @@ int ViewerBasic::init()
     init_cube();
     init_quad();
 
+    m_tex_debug = read_texture(3, "../data/debug2x2red.png");
     // OpenCV & dLib
+    
     loadFaceDetectionModels();
     initFBO(texID);
     initCvCapture();
@@ -79,23 +84,20 @@ int ViewerBasic::init()
 
 int ViewerBasic::initFBO(GLuint &id){
     // setup FBO
-    
     glGenFramebuffers(1, &fboID);
     glBindFramebuffer(GL_FRAMEBUFFER, fboID);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texID, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
 int ViewerBasic::renderToFBO(cv::Mat& cvImage){
-     
-    
-    
-    // Notre framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
-   // glViewport(SCREEN_W / 2, SCREEN_H / 2, SCREEN_W, SCREEN_H);
 
-    glBindTexture(GL_TEXTURE_2D, texID);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    
+    
+    // glBindTexture(GL_TEXTURE_2D, texID);
 
     // fixe les parametres de filtrage par defaut
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -117,9 +119,10 @@ int ViewerBasic::renderToFBO(cv::Mat& cvImage){
     // prefiltre la texture
     glGenerateMipmap(GL_TEXTURE_2D);
 
-
+    
+   // glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glDeleteFramebuffers( 1, &fboID );
+    
 }
 
 
@@ -214,13 +217,16 @@ void ViewerBasic::init_quad()
 
 int ViewerBasic::initCvCapture(){
     cap = cv::VideoCapture(0);
-    cap.set(cv::CAP_PROP_FRAME_WIDTH, 256);
-    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 256);
+
+    cap.set(CV_CAP_PROP_BRIGHTNESS, .5);
+    
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 256);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 256);
     if(!cap.isOpened()){
         cerr << "Unable to connect to camera" << endl;
         return 1;
     }
-
+    
     return 0;
     
 }
@@ -256,7 +262,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
     // Lance la capture webcam et stocke le résultat dans une matrice openCV (cv::Mat)
     try
     {
-
+          
         // Grab a frame
         if (!cap.read(cvMatCam))
         {
@@ -280,6 +286,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
         for (unsigned long i = 0; i < faces.size(); ++i)
             shapes.push_back(pose_model(cimg, faces[i]));
 
+        
     }
     catch (exception &e)
     {
@@ -292,7 +299,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
 
 int ViewerBasic::render()
 {
-    // Draw only to the bottm-right quarter
+    
     
     // Efface l'ecran
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -305,13 +312,11 @@ int ViewerBasic::render()
 
     // Lance la capture webcam avec openCV
     doCapture(cvMatCam);
-
-    draw_quad(Identity()*Scale(6.4,4.8,1));
     
+    draw_quad(Scale(5,5,5), m_tex_debug);
    
     renderToFBO(cvMatCam);
-    
-    
+
     return 1;
 }
 
@@ -343,11 +348,10 @@ void ViewerBasic::draw_cube(const Transform& T)
 	gl.draw(m_cube);
 }
 
-void ViewerBasic::draw_quad(const Transform& T)
+void ViewerBasic::draw_quad(const Transform& T, const GLuint &Tex)
 {
 	gl.lighting(true);
-	gl.texture(texID);
-    // gl.texture(cvMat2GLTexture(cvMatCam));
+	gl.texture(Tex);
 	gl.model(T);
 	gl.draw(m_quad);
 }
