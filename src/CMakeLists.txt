@@ -49,9 +49,6 @@ include_directories(${SDL2_INCLUDE_DIRS} ${GKIT_CORE_INCLUDE_DIR} ${GKIT_VIEW_IN
 set(GKIT_CORE_INCLUDE_DIR gKitCore)
 set(GKIT_VIEW_INCLUDE_DIR gKitView)
 
-#! Il faut bien installer le sdk fbx dans le repertoire /usr
-set(FBX_LIB_DIR /usr/lib/gcc4/x64/debug/libfbxsdk.so)
-
 
 file(GLOB GKIT_CORE_SRC gKitCore/*.cpp)
 file(GLOB GKIT_CORE_H gKitCore)
@@ -87,10 +84,10 @@ add_subdirectory(../dlib-19.19/dlib dlib_build)
 
 find_package(OpenCV QUIET)
    if (OpenCV_FOUND)
-	   include_directories(${OpenCV_INCLUDE_DIRS} ${GKIT_VIEW_INCLUDE_DIR} ${GKIT_CORE_INCLUDE_DIR} ${FBX_INCLUDE_DIR})
+	   include_directories(${OpenCV_INCLUDE_DIRS} ${GKIT_VIEW_INCLUDE_DIR} ${GKIT_CORE_INCLUDE_DIR})
       	   add_executable(lifprojet_am4 ${GKIT_CORE_SRC} ${GKIT_VIEW_SRC}  main.cpp)
             target_link_libraries(lifprojet_am4 dlib::dlib ${OpenCV_LIBS} ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} 
-                                                           ${GLEW_LIBRARIES} ${SDL2IMAGE_LIBRARIES} ${FBX_LIB_DIR})
+                                                           ${GLEW_LIBRARIES} ${SDL2IMAGE_LIBRARIES} )
 
    else()
       message("OpenCV not found, so we won't build lifprojet_am4.")
