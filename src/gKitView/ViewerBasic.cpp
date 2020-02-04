@@ -7,7 +7,6 @@
 
 
 #include <ViewerBasic.h>
-#include <fbxsdk.h>
 
 using namespace std;
 
@@ -218,10 +217,10 @@ void ViewerBasic::init_quad()
 int ViewerBasic::initCvCapture(){
     cap = cv::VideoCapture(0);
 
-    cap.set(CV_CAP_PROP_BRIGHTNESS, .5);
+    cap.set(10, .5); //10
     
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 256);
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, 256);
+    cap.set(4, 256); //4
+    cap.set(3, 256); //3
     if(!cap.isOpened()){
         cerr << "Unable to connect to camera" << endl;
         return 1;
