@@ -81,16 +81,6 @@ int ViewerBasic::init()
     initFBO(texID);
     initCvCapture();
 
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Default.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Closed_L.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Closed_R.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Open_S.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Open_M.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Open_L.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Chew_L.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Chew_R.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Eye_Closed_L.obj"));
-    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Eye_Closed_R.obj"));
 
     //interp = interpolateMeshes(m_cube, m_quad, 0);
 
