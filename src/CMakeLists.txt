@@ -1,31 +1,3 @@
-#
-#  _______ _    _ _____  _____     _____  _____                 
-# |__   __| |  | |_   _|/ ____|   |_   _|/ ____|       /\       
-#    | |  | |__| | | | | (___       | | | (___        /  \      
-#    | |  |  __  | | |  \___ \      | |  \___ \      / /\ \     
-#    | |  | |  | |_| |_ ____) |    _| |_ ____) |    / ____ \    
-#    |_|__|_|_ |_|_____|_____/__  |_____|_____/    /_/  _ \_\   
-#   |__   __| |  | |__   __/ __ \|  __ \|_   _|   /\   | |      
-#      | |  | |  | |  | | | |  | | |__) | | |    /  \  | |      
-#      | |  | |  | |  | | | |  | |  _  /  | |   / /\ \ | |      
-#      | |  | |__| |  | | | |__| | | \ \ _| |_ / ____ \| |____  
-#      |_|   \____/   |_|  \____/|_|  \_\_____/_/    \_\______| 
-#
-#
-#    _____  ______          _____      _______ _    _ ______       
-#   |  __ \|  ____|   /\   |  __ \    |__   __| |  | |  ____|      
-#   | |__) | |__     /  \  | |  | |      | |  | |__| | |__         
-#   |  _  /|  __|   / /\ \ | |  | |      | |  |  __  |  __|        
-#   | | \ \| |____ / ____ \| |__| |      | |  | |  | | |____       
-#   |_|__\_\______/_/_ __\_\_____/__ _   |_|__|_|_ |_|______|_ _ _ 
-#  / ____/ __ \|  \/  |  \/  |  ____| \ | |__   __/ ____| | | | | |
-# | |   | |  | | \  / | \  / | |__  |  \| |  | | | (___   | | | | |
-# | |   | |  | | |\/| | |\/| |  __| | . ` |  | |  \___ \  | | | | |
-# | |___| |__| | |  | | |  | | |____| |\  |  | |  ____) | |_|_|_|_|
-#  \_____\____/|_|  |_|_|  |_|______|_| \_|  |_| |_____/  (_|_|_|_)
-#                                                                  
-#
-#
 # This is a CMake makefile.  CMake is a tool that helps you build C++ programs.
 # You can download CMake from http://www.cmake.org.  This CMakeLists.txt file
 # you are reading builds dlib's example programs. 
@@ -36,15 +8,17 @@ cmake_minimum_required(VERSION 2.8.12)
 # Every project needs a name.  We call this the "examples" project.
 project(lifprojet_am4)
 
-INCLUDE(FindPkgConfig )
+INCLUDE(FindPkgConfig)
 
 find_package(SDL2 REQUIRED)
-PKG_SEARCH_MODULE(SDL2_image REQUIRED SDL2_image)
+
+PKG_SEARCH_MODULE(SDL2IMAGE REQUIRED SDL2_image>=2.0.0)
+
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 
 
-include_directories(${SDL2_INCLUDE_DIRS} ${GKIT_CORE_INCLUDE_DIR} ${GKIT_VIEW_INCLUDE_DIR})
+include_directories(${SDL2_INCLUDE_DIRS}  ${SDL2IMAGE_INCLUDE_DIRS} ${GKIT_CORE_INCLUDE_DIR} ${GKIT_VIEW_INCLUDE_DIR})
 
 set(GKIT_CORE_INCLUDE_DIR gKitCore)
 set(GKIT_VIEW_INCLUDE_DIR gKitView)
