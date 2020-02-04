@@ -193,11 +193,10 @@ void ViewerBasic::init_quad()
     m_quad.vertex(  1,  1, 0 );
 }
 
-<<<<<<< HEAD
 Mesh ViewerBasic::init_OBJ(const char *filename){
     return read_mesh(filename);
- 
-=======
+}
+
 int ViewerBasic::initCvCapture(){
     cap = cv::VideoCapture(0);
 
@@ -278,7 +277,6 @@ int ViewerBasic::doCapture(cv::Mat &out)
 
 
     return 0;
->>>>>>> 6fa183f009a3962be6ebb5484bbe5044891a370e
 }
 
 /////////////////////////////
