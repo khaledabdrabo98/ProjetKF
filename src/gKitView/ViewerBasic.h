@@ -13,6 +13,7 @@
 #include "mat.h"
 #include "orbiter.h"
 #include "app.h"
+#include "wavefront.h"
 
 
 #include <dlib/opencv.h>
@@ -47,6 +48,7 @@ protected:
     Mesh m_axe;
     Mesh m_grid;
     Mesh m_cube;
+    std::vector<Mesh> blendshapes;
 
     GLuint m_tex_debug;
 
@@ -55,9 +57,12 @@ protected:
     void init_axe();
     void init_grid();
     void init_cube();
+    Mesh init_OBJ(const char *filename);
 
     Mesh m_quad;
     void init_quad();
+
+    void draw(const Transform& T, Mesh &mesh);
 
     void draw_axe(const Transform& T);
 	void draw_grid(const Transform& T);
@@ -81,6 +86,15 @@ protected:
     GLuint fboID;
     int initFBO(GLuint &id);
     int renderToFBO(cv::Mat &cvImage);
+
+    //! Fonctions mathematiques
+    Vector lerpV3(const Vector &a, const Vector &b, double alpha);
+    Mesh interpolateMeshes(const Mesh &a, const Mesh &b, double alpha);
+    Mesh interp;
+
+
+
+
     
     
 };

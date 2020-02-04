@@ -39,7 +39,7 @@ project(lifprojet_am4)
 INCLUDE(FindPkgConfig )
 
 find_package(SDL2 REQUIRED)
-PKG_SEARCH_MODULE(SDL2_IMG REQUIRED SDL2_image)
+PKG_SEARCH_MODULE(SDL2_image REQUIRED SDL2_image)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 

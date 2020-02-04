@@ -3,16 +3,19 @@
 #include <cstdio>
 #include <iostream>
 
-
-
-
 #include <ViewerBasic.h>
-#include <fbxsdk.h>
+
+
 
 using namespace std;
 
 #define SCREEN_W 1024
 #define SCREEN_H 768
+
+
+/////////////////////////////
+//! Gkit init functions 
+/////////////////////////////  
 
 ViewerBasic::ViewerBasic() : App(1024, 768), mb_cullface(true), mb_wireframe(false), b_draw_grid(true), b_draw_axe(true)
 {
@@ -33,6 +36,7 @@ void ViewerBasic::help()
     printf("\tSouris+bouton gauche: rotation\n");
     printf("\tSouris mouvement vertical+bouton droit: (de)zoom\n");
 }
+
 
 
 int ViewerBasic::init()
@@ -79,6 +83,21 @@ int ViewerBasic::init()
     initFBO(texID);
     initCvCapture();
 
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Default.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Closed_L.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Closed_R.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Open_S.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Open_M.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Mouth_Open_L.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Chew_L.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Chew_R.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Eye_Closed_L.obj"));
+    blendshapes.push_back(init_OBJ("../data/blendshapes/M_Eye_Closed_R.obj"));
+
+    //interp = interpolateMeshes(m_cube, m_quad, 0);
+
+
+
     return 1;
 }
 
@@ -89,42 +108,6 @@ int ViewerBasic::initFBO(GLuint &id){
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-
-
-int ViewerBasic::renderToFBO(cv::Mat& cvImage){
-
-    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    
-    
-    // glBindTexture(GL_TEXTURE_2D, texID);
-
-    // fixe les parametres de filtrage par defaut
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // transfere les donnees dans la texture
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGB,
-                 cvImage.cols,
-                 cvImage.rows,
-                 0,
-                 GL_BGR,
-                 GL_UNSIGNED_BYTE,
-                 cvImage.ptr());
-
-    // prefiltre la texture
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    
-   // glBindTexture(GL_TEXTURE_2D, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
-}
-
 
 void ViewerBasic::init_axe()
 {
@@ -141,7 +124,6 @@ void ViewerBasic::init_axe()
     m_axe.vertex( 0,  0, 0);
     m_axe.vertex( 0,  0, 1);
 }
-
 
 void ViewerBasic::init_grid()
 {
@@ -193,8 +175,6 @@ void ViewerBasic::init_cube()
     }
 }
 
-
-
 void ViewerBasic::init_quad()
 {
     m_quad = Mesh(GL_TRIANGLE_STRIP);
@@ -215,88 +195,14 @@ void ViewerBasic::init_quad()
     m_quad.vertex(  1,  1, 0 );
 }
 
-int ViewerBasic::initCvCapture(){
-    cap = cv::VideoCapture(0);
-
-    cap.set(CV_CAP_PROP_BRIGHTNESS, .5);
-    
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 256);
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, 256);
-    if(!cap.isOpened()){
-        cerr << "Unable to connect to camera" << endl;
-        return 1;
-    }
-    
-    return 0;
-    
+Mesh ViewerBasic::init_OBJ(const char *filename){
+    return read_mesh(filename);
+ 
 }
 
-void ViewerBasic::loadFaceDetectionModels(){
-    // Load face detection and pose estimation models.
-    std::cout << "dlib detector load\n";
-
-    try
-    {
-        detector = dlib::get_frontal_face_detector();
-        dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
-    }
-    catch (dlib::serialization_error &e)
-    {
-        cout << "You need dlib's default face landmarking model file to run this example." << endl;
-        cout << "You can get it from the following URL: " << endl;
-        cout << "   http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2" << endl;
-        cout << endl
-             << e.what() << endl;
-    }
-    catch (exception &e)
-    {
-        cout << e.what() << endl;
-    }
-}
-
-int ViewerBasic::doCapture(cv::Mat &out)
-{
-    using namespace dlib;
-    using namespace cv;
-
-    // Lance la capture webcam et stocke le résultat dans une matrice openCV (cv::Mat)
-    try
-    {
-          
-        // Grab a frame
-        if (!cap.read(cvMatCam))
-        {
-            return -1;
-        }
-
-        
-        cv::flip(cvMatCam, cvMatCam, 0);
-        // Turn OpenCV's Mat into something dlib can deal with.  Note that this just
-        // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
-        // long as temp is valid.  Also don't do anything to temp that would cause it
-        // to reallocate the memory which stores the image as that will make cimg
-        // contain dangling pointers.  This basically means you shouldn't modify temp
-        // while using cimg.
-        cv_image<bgr_pixel> cimg(cvMatCam);
-
-        // Detect faces
-        std::vector<rectangle> faces = detector(cimg);
-        // Find the pose of each face.
-        std::vector<full_object_detection> shapes;
-        for (unsigned long i = 0; i < faces.size(); ++i)
-            shapes.push_back(pose_model(cimg, faces[i]));
-
-        
-    }
-    catch (exception &e)
-    {
-        cout << e.what() << endl;
-    }
-
-
-    return 0;
-}
-
+/////////////////////////////
+//! Gkit Render functions 
+/////////////////////////////  
 int ViewerBasic::render()
 {
     
@@ -313,13 +219,64 @@ int ViewerBasic::render()
     // Lance la capture webcam avec openCV
     doCapture(cvMatCam);
     
-    draw_quad(Scale(5,5,5), m_tex_debug);
-   
+    draw_quad(Scale(5,5,5)*Translation(10,0,0), m_tex_debug);
+
+    //for(int i=0 ; i<blendshapes.size(); ++i)
+         //draw(Identity() * Translation(10*i,0,0), blendshapes.at(i));
+
+    draw(Identity() * Translation(10, 0, 0), interp);
+
     renderToFBO(cvMatCam);
 
     return 1;
 }
 
+int ViewerBasic::renderToFBO(cv::Mat& cvImage){
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    
+    
+    // glBindTexture(GL_TEXTURE_2D, texID);
+
+    // fixe les parametres de filtrage par defaut
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // transfere les donnees dans la texture
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGB,
+                 cvImage.cols,
+                 cvImage.rows,
+                 0,
+                 GL_BGR,
+                 GL_UNSIGNED_BYTE,
+                 cvImage.ptr());
+
+    // prefiltre la texture
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    
+   // glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+}
+
+/////////////////////////////
+//! Gkit draw functions
+/////////////////////////////  
+
+void ViewerBasic::draw(const Transform& T,  Mesh &mesh ){
+    gl.model(T);
+    gl.texture(0);
+    gl.lighting(false);
+    gl.draw(mesh);
+    gl.lighting(true);
+
+}
 
 void ViewerBasic::draw_axe(const Transform& T)
 {
@@ -343,7 +300,6 @@ void ViewerBasic::draw_cube(const Transform& T)
 {
 	gl.lighting(true);
 	gl.texture(0);
-    
 	gl.model(T);
 	gl.draw(m_cube);
 }
@@ -356,7 +312,9 @@ void ViewerBasic::draw_quad(const Transform& T, const GLuint &Tex)
 	gl.draw(m_quad);
 }
 
-
+/////////////////////////////
+//! Gkit camera functions
+///////////////////////////// 
 
 void ViewerBasic::manageCameraLight()
 {
@@ -413,3 +371,106 @@ void ViewerBasic::manageCameraLight()
     gl.draw(m_cube);
     gl.lighting(true);
 }
+
+/////////////////////////////
+//! openCV & dlib
+///////////////////////////// 
+
+
+int ViewerBasic::initCvCapture(){
+    cap = cv::VideoCapture(0);
+
+    cap.set(CV_CAP_PROP_BRIGHTNESS, .5);
+    
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 256);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 256);
+    if(!cap.isOpened()){
+        cerr << "Unable to connect to camera" << endl;
+        return 1;
+    }
+    
+    return 0;
+    
+}
+
+void ViewerBasic::loadFaceDetectionModels(){
+    // Load face detection and pose estimation models.
+    std::cout << "dlib detector load\n";
+
+    try
+    {
+        detector = dlib::get_frontal_face_detector();
+        dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> pose_model;
+    }
+    catch (dlib::serialization_error &e)
+    {
+        cout << "You need dlib's default face landmarking model file to run this example." << endl;
+        cout << "You can get it from the following URL: " << endl;
+        cout << "   http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2" << endl;
+        cout << endl
+             << e.what() << endl;
+    }
+    catch (exception &e)
+    {
+        cout << e.what() << endl;
+    }
+}
+
+int ViewerBasic::doCapture(cv::Mat &out)
+{
+    using namespace dlib;
+    using namespace cv;
+
+    // Lance la capture webcam et stocke le résultat dans une matrice openCV (cv::Mat)
+    try
+    {
+          
+        // Grab a frame
+        if (!cap.read(cvMatCam))
+        {
+            return -1;
+        }
+        
+
+        
+        cv::flip(cvMatCam, cvMatCam, 0);
+        // Turn OpenCV's Mat into something dlib can deal with.  Note that this just
+        // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
+        // long as temp is valid.  Also don't do anything to temp that would cause it
+        // to reallocate the memory which stores the image as that will make cimg
+        // contain dangling pointers.  This basically means you shouldn't modify temp
+        // while using cimg.
+        cv_image<bgr_pixel> cimg(cvMatCam);
+
+        // Detect faces
+        std::vector<rectangle> faces = detector(cimg);
+        // Find the pose of each face.
+        std::vector<full_object_detection> shapes;
+        for (unsigned long i = 0; i < faces.size(); ++i)
+            shapes.push_back(pose_model(cimg, faces[i]));
+
+        
+    }
+    catch (exception &e)
+    {
+        cout << e.what() << endl;
+    }
+
+
+    return 0;
+}
+
+////////////////////////////
+//! Maths functions
+////////////////////////////
+
+Vector ViewerBasic::lerpV3(const Vector &a, const Vector &b, double alpha){
+    return (1-alpha)*a + alpha * b;
+}
+
+Mesh ViewerBasic::interpolateMeshes(const Mesh &a, const Mesh &b, double alpha){
+    //Parcours des vertices 
+    
+    
+}
+

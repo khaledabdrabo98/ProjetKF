@@ -257,6 +257,7 @@ public:
     
     //! renvoie l'adresse de la position du premier sommet. permet de construire les vertex buffers openGL. par convention, la position est un vec3, 3 GL_FLOAT.
     const float *vertex_buffer( ) const { return &m_positions.front().x; }
+
     //! renvoie la longueur (en octets) du vertex buffer.
     std::size_t vertex_buffer_size( ) const { return m_positions.size() * sizeof(vec3); }
 
