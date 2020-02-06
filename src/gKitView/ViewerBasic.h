@@ -6,6 +6,7 @@
 
 #include "window.h"
 #include "program.h"
+#include "uniforms.h"
 #include "texture.h"
 #include "mesh.h"
 #include "draw.h"
@@ -22,6 +23,92 @@
 #include <dlib/image_processing/render_face_detections.h>
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
+
+
+//TODO : modifier la fonction create de Buffer pour initialiser d'un seul coup un tableau de mesh 
+
+struct Buffers
+{
+    GLuint vao;
+    GLuint vertex_buffer;
+    GLuint vertex_buffer1;
+    
+    int vertex_count;
+    Buffers( ) : vao(0), vertex_buffer(0), vertex_count(0) {}
+    
+    void create( const Mesh& mesh, const Mesh& mesh1)
+    {
+        if(!mesh.vertex_buffer_size()) return;
+
+        // cree et configure un vertex array object: conserve la description des attributs de sommets
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+        
+//\\//\\//\\//\\//\\1ER MESH
+
+        // creer, initialiser le buffer : positions + normals + texcoords du mesh
+        glGenBuffers(1, &vertex_buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+        
+        // taille totale du buffer
+        size_t size = mesh.vertex_buffer_size() + mesh.texcoord_buffer_size() + mesh.normal_buffer_size();
+        glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
+
+        // transfere les positions des sommets
+        size_t offset = 0;
+        size = mesh.vertex_buffer_size();
+        glBufferSubData(GL_ARRAY_BUFFER, offset, size, mesh.vertex_buffer());
+        // et configure l'attribut 0, vec3 position
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
+        glEnableVertexAttribArray(0);
+
+        // // transfere les texcoords des sommets
+        // offset = offset + size;
+        // size = mesh.texcoord_buffer_size();
+        // glBufferSubData(GL_ARRAY_BUFFER, offset, size, mesh.texcoord_buffer());
+        // // et configure l'attribut 1, vec2 texcoord
+        // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
+        // glEnableVertexAttribArray(1);
+
+        // transfere les normales des sommets
+        offset = offset + size;
+        size = mesh.normal_buffer_size();
+        glBufferSubData(GL_ARRAY_BUFFER, offset, size, mesh.normal_buffer());
+        // et configure l'attribut 2, vec3 normal
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
+        glEnableVertexAttribArray(2);
+
+        // //\\//\\//\\//\\//\\ 2EME MESH
+
+                // cree et initialise le buffer stockant les positions des sommets
+                glGenBuffers(1, &vertex_buffer1);
+                glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer1);
+
+                size_t size1 = mesh1.vertex_buffer_size() + mesh1.texcoord_buffer_size() + mesh1.normal_buffer_size();
+                glBufferData(GL_ARRAY_BUFFER, size1, nullptr, GL_STATIC_DRAW);
+
+                glBufferData(GL_ARRAY_BUFFER, size1, nullptr, GL_STATIC_DRAW);
+
+                // transfere les positions des sommets
+                offset = 0;
+                size1 = mesh.vertex_buffer_size();
+                glBufferSubData(GL_ARRAY_BUFFER, offset, size1, mesh1.vertex_buffer());
+
+                // et configure l'attribut 1, vec3 position
+                glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
+                glEnableVertexAttribArray(1);
+        
+        // conserve le nombre de sommets
+        vertex_count = mesh.vertex_count();
+        vertex_count += mesh1.vertex_count();
+    }
+    
+    void release( )
+    {
+        glDeleteVertexArrays(1, &vao);
+        glDeleteBuffers(1, &vertex_buffer);
+    }
+};
 
 class ViewerBasic : public App
 {
@@ -88,10 +175,15 @@ protected:
     int renderToFBO(cv::Mat &cvImage);
 
     //! Fonctions mathematiques
-    Vector lerpV3(const Vector &a, const Vector &b, double alpha);
-    Mesh interpolateMeshes(const Mesh &a, const Mesh &b, double alpha);
-    Mesh interp;
+    void init_BSShader();
+    void draw_blendshapes();
+    void createVAO(GLuint );
+    GLuint program;
+    Transform mvp;
 
+    Mesh m_default,m_mouth_CL,m_mouth_CR;
+    //Vertex arrays
+    Buffers mVA1, mVA2, mVA3;
 
 
 
