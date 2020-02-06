@@ -5,6 +5,7 @@
 
 #include <ViewerBasic.h>
 
+
 using namespace std;
 
 #define SCREEN_W 1024
@@ -15,7 +16,7 @@ using namespace std;
 //! Gkit init functions 
 /////////////////////////////  
 
-ViewerBasic::ViewerBasic() : App(1024, 768), mb_cullface(true), mb_wireframe(false), b_draw_grid(true), b_draw_axe(true)
+ViewerBasic::ViewerBasic() : App(SCREEN_W, SCREEN_H), mb_cullface(true), mb_wireframe(false), b_draw_grid(true), b_draw_axe(true)
 {
 }
 
@@ -62,11 +63,12 @@ int ViewerBasic::init()
 	if (txt) cout << "OpenGl Shading Language Version " << (const char*)txt << endl;
 
 	// etat par defaut openGL
-    //glClearColor(0.5f, 0.5f, 0.9f, 1);
+    glClearColor(0.5f, 0.5f, 0.9f, 1);
    
     glEnable(GL_DEPTH_TEST);
 
     m_camera.lookat( Point(0,0,0), 30 );
+    
     gl.light( Point(0, 20, 20), White() );
 
     init_axe();
@@ -81,8 +83,13 @@ int ViewerBasic::init()
     initFBO(texID);
     initCvCapture();
 
+    //! Blendshapes
+    init_BSShader();
 
-    //interp = interpolateMeshes(m_cube, m_quad, 0);
+    
+
+
+    
 
 
 
@@ -205,16 +212,13 @@ int ViewerBasic::render()
     gl.camera(m_camera);
 
     // Lance la capture webcam avec openCV
-    doCapture(cvMatCam);
+    //doCapture(cvMatCam);
     
     draw_quad(Scale(5,5,5)*Translation(10,0,0), m_tex_debug);
 
-    //for(int i=0 ; i<blendshapes.size(); ++i)
-         //draw(Identity() * Translation(10*i,0,0), blendshapes.at(i));
+    draw_blendshapes();
 
-    draw(Identity() * Translation(10, 0, 0), interp);
-
-    renderToFBO(cvMatCam);
+    //renderToFBO(cvMatCam);
 
     return 1;
 }
@@ -222,7 +226,7 @@ int ViewerBasic::render()
 int ViewerBasic::renderToFBO(cv::Mat& cvImage){
 
     glBindFramebuffer(GL_FRAMEBUFFER, fboID);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     
     
     // glBindTexture(GL_TEXTURE_2D, texID);
@@ -448,17 +452,61 @@ int ViewerBasic::doCapture(cv::Mat &out)
     return 0;
 }
 
+
 ////////////////////////////
 //! Maths functions
 ////////////////////////////
+void ViewerBasic::init_BSShader(){
+    // //! https://perso.univ-lyon1.fr/jean-claude.iehl/Public/educ/M1IMAGE/html/group__tuto__mesh__buffer.html
+    program = 0;
+    program = read_program("../data/shaders/blendshape.glsl");
+    program_print_errors(program);
 
-Vector ViewerBasic::lerpV3(const Vector &a, const Vector &b, double alpha){
-    return (1-alpha)*a + alpha * b;
+    //! chargement des differentes poses 
+    m_default = read_mesh("../data/blendshapes/Neutral.obj");
+    m_mouth_CL = read_mesh("../data/blendshapes/jawOpen.obj");
+    m_mouth_CR = read_mesh("../data/blendshapes/M_Mouth_Open_L.obj");
+
+    // cree un VAO qui va contenir la position des sommet de nos mesh 
+    mVA1.create(m_default, m_mouth_CL);
+    m_default.release(); 
+    m_mouth_CR.release();
+    
 }
 
-Mesh ViewerBasic::interpolateMeshes(const Mesh &a, const Mesh &b, double alpha){
-    //Parcours des vertices 
+void ViewerBasic::draw_blendshapes(){
+    
+
+    glUseProgram(program);
+    
+    Transform model = Identity() * Scale(60,60,60) ;
+    Transform view = m_camera.view();
+    Transform projection = m_camera.projection(window_width(), window_height(), 45);
+
+    Transform mv = m_camera.view() * model;
+    mvp = projection * mv;
+
+    program_uniform(program, "mvpMatrix", mvp);
+    program_uniform(program, "mvMatrix", mv);
+    program_uniform(program, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
+    program_uniform(program, "mesh_color", m_default.default_color());
+
+
+    //weights
+    program_uniform(program, "happy_w", (float)0.5);
+
+    float val = 0.0;
+
+    if (key_state(SDLK_UP)) val += 1.0;
+        program_uniform(program, "angry_w", val);
+    
+
+    // On selection notre VAO pour le vertex shader
+    glBindVertexArray(mVA1.vao);
     
     
+    glDrawArrays(GL_TRIANGLES, 0, mVA1.vertex_count);
+  
 }
+
 
