@@ -463,9 +463,8 @@ void ViewerBasic::init_BSShader(){
     program_print_errors(program);
 
     //! chargement des differentes poses 
-    m_default = read_mesh("../data/m_neutral.obj");
-    m_mouth_CL = read_mesh("../data/m_mouthSmileRight.obj");
-    m_mouth_CR = read_mesh("../data/blendshapes/M_Mouth_Open_L.obj");
+    m_default = read_mesh("../data/blendshapes/Neutral.obj");
+    m_mouth_CL = read_mesh("../data/blendshapes/jawOpen.obj");
 
     if(m_default.normal_buffer_size() == 0)
         std::cout << "ERREUR, pas de texcoords...";

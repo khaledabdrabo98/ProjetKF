@@ -110,9 +110,6 @@ struct Buffers
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
         glEnableVertexAttribArray(4);
 
-
-
-
         // conserve le nombre de sommets
         vertex_count = mesh.vertex_count();
         vertex_count += mesh1.vertex_count();
