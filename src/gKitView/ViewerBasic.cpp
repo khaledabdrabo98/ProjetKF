@@ -200,8 +200,8 @@ Mesh ViewerBasic::init_OBJ(const char *filename){
 /////////////////////////////  
 int ViewerBasic::render()
 {
-    
-    
+    thread t1 = thread(&ViewerBasic::doCapture, this, std::ref(this->cvMatCam));
+
     // Efface l'ecran
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -219,6 +219,8 @@ int ViewerBasic::render()
     draw_blendshapes();
 
     //renderToFBO(cvMatCam);
+
+    t1.join();
 
     return 1;
 }
@@ -423,9 +425,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
             return -1;
         }
         
-
-        
-        cv::flip(cvMatCam, cvMatCam, 0);
+        //cv::flip(cvMatCam, cvMatCam, 0);
         // Turn OpenCV's Mat into something dlib can deal with.  Note that this just
         // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
         // long as temp is valid.  Also don't do anything to temp that would cause it
@@ -441,7 +441,10 @@ int ViewerBasic::doCapture(cv::Mat &out)
         for (unsigned long i = 0; i < faces.size(); ++i)
             shapes.push_back(pose_model(cimg, faces[i]));
 
-        
+        // Display it all on the screen
+        win.clear_overlay();
+        win.set_image(cimg);
+        win.add_overlay(render_face_detections(shapes));
     }
     catch (exception &e)
     {
@@ -467,7 +470,7 @@ void ViewerBasic::init_BSShader(){
     m_mouth_CL = read_mesh("../data/blendshapes/jawOpen.obj");
 
     if(m_default.normal_buffer_size() == 0)
-        std::cout << "ERREUR, pas de texcoords...";
+        std::cout << "ERREUR, pas de vertex normals...";
 
     // cree un VAO qui va contenir la position des sommet de nos mesh 
     mVA1.create(m_default, m_mouth_CL);
@@ -481,9 +484,6 @@ void ViewerBasic::draw_blendshapes(){
 
     glUseProgram(program);
 
-
-        
-    
     Transform model = Identity() * Scale(60,60,60) ;
     Transform view = m_camera.view();
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
