@@ -15,6 +15,7 @@
 #include "orbiter.h"
 #include "app.h"
 #include "wavefront.h"
+#include "text.h"
 
 #include <vector>
 
@@ -173,6 +174,18 @@ public:
     //! La fonction d'affichage
     int render();
 
+    //! OpenCV
+    cv::Mat cvMatCam;
+    cv::VideoCapture cap;
+    int initCvCapture();
+    int doCapture(cv::Mat &out);
+
+    //! dLib
+    void loadFaceDetectionModels();
+    dlib::shape_predictor pose_model;
+    dlib::frontal_face_detector detector;
+    dlib::image_window win;
+
     void help();
 
 	int quit() { return 1;  }
@@ -210,16 +223,7 @@ protected:
 
     void manageCameraLight();
 
-    //! OpenCV
-    cv::Mat cvMatCam;
-    cv::VideoCapture cap;
-    int initCvCapture();
-    int doCapture(cv::Mat &out);
-
-    //! dLib
-    void loadFaceDetectionModels();
-    dlib::shape_predictor pose_model;
-    dlib::frontal_face_detector detector;
+    
     
     GLuint texID;
     GLuint fboID;
