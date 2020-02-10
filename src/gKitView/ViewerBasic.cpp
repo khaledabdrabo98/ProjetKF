@@ -463,9 +463,12 @@ void ViewerBasic::init_BSShader(){
     program_print_errors(program);
 
     //! chargement des differentes poses 
-    m_default = read_mesh("../data/blendshapes/Neutral.obj");
-    m_mouth_CL = read_mesh("../data/blendshapes/jawOpen.obj");
+    m_default = read_mesh("../data/m_neutral.obj");
+    m_mouth_CL = read_mesh("../data/m_mouthSmileRight.obj");
     m_mouth_CR = read_mesh("../data/blendshapes/M_Mouth_Open_L.obj");
+
+    if(m_default.normal_buffer_size() == 0)
+        std::cout << "ERREUR, pas de texcoords...";
 
     // cree un VAO qui va contenir la position des sommet de nos mesh 
     mVA1.create(m_default, m_mouth_CL);
@@ -475,9 +478,12 @@ void ViewerBasic::init_BSShader(){
 }
 
 void ViewerBasic::draw_blendshapes(){
-    
+    //pour l'instant, les obj n'ont pas de vertex normal/color/texcoord 
 
     glUseProgram(program);
+
+
+        
     
     Transform model = Identity() * Scale(60,60,60) ;
     Transform view = m_camera.view();
@@ -486,14 +492,19 @@ void ViewerBasic::draw_blendshapes(){
     Transform mv = m_camera.view() * model;
     mvp = projection * mv;
 
+    program_uniform(program, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
     program_uniform(program, "mvpMatrix", mvp);
     program_uniform(program, "mvMatrix", mv);
-    program_uniform(program, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
+    
     program_uniform(program, "mesh_color", m_default.default_color());
+    program_uniform(program, "color", Red());
 
+    program_uniform(program, "light", view(gl.light()));
+
+    
 
     //weights
-    program_uniform(program, "happy_w", (float)0.5);
+    
 
     float val = 0.0;
 
