@@ -68,6 +68,7 @@ int ViewerBasic::init()
     glEnable(GL_DEPTH_TEST);
 
     m_camera.lookat( Point(0,0,0), 30 );
+    m_camera.move(99);
     
     gl.light( Point(0, 20, 20), White() );
 
@@ -82,17 +83,15 @@ int ViewerBasic::init()
     loadFaceDetectionModels();
     initFBO(texID);
     initCvCapture();
-
+    
+    
     //! Blendshapes
     init_BSShader();
-
-    
-
-
-    
-
-
-
+    tab_weights.push_back(std::vector<double>());
+    tab_weights.push_back(std::vector<double>());
+    tab_weights[0].push_back(0.0);
+    tab_weights[1].push_back(0.0);
+ 
     return 1;
 }
 
@@ -102,6 +101,8 @@ int ViewerBasic::initFBO(GLuint &id){
     glBindFramebuffer(GL_FRAMEBUFFER, fboID);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return 0;
 }
 
 void ViewerBasic::init_axe()
@@ -200,8 +201,8 @@ Mesh ViewerBasic::init_OBJ(const char *filename){
 /////////////////////////////  
 int ViewerBasic::render()
 {
-    thread t1 = thread(&ViewerBasic::doCapture, this, std::ref(this->cvMatCam));
-
+    // thread t1(&ViewerBasic::doCvCapture, this, std::ref(this->cvMatCam));
+    
     // Efface l'ecran
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -212,7 +213,7 @@ int ViewerBasic::render()
     gl.camera(m_camera);
 
     // Lance la capture webcam avec openCV
-    //doCapture(cvMatCam);
+    doCvCapture(cvMatCam);
     
     draw_quad(Scale(5,5,5)*Translation(10,0,0), m_tex_debug);
 
@@ -220,7 +221,9 @@ int ViewerBasic::render()
 
     //renderToFBO(cvMatCam);
 
-    t1.join();
+    // t1.join();
+    
+
 
     return 1;
 }
@@ -256,6 +259,8 @@ int ViewerBasic::renderToFBO(cv::Mat& cvImage){
     
    // glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return 0;
     
 }
 
@@ -373,11 +378,12 @@ void ViewerBasic::manageCameraLight()
 
 int ViewerBasic::initCvCapture(){
     cap = cv::VideoCapture(0);
-
+    
+    faceDetected = false;
     cap.set(CV_CAP_PROP_BRIGHTNESS, .5);
     
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 256);
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, 256);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 512);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 512);
     if(!cap.isOpened()){
         cerr << "Unable to connect to camera" << endl;
         return 1;
@@ -408,9 +414,12 @@ void ViewerBasic::loadFaceDetectionModels(){
     {
         cout << e.what() << endl;
     }
+
+    
+    
 }
 
-int ViewerBasic::doCapture(cv::Mat &out)
+int ViewerBasic::doCvCapture(cv::Mat &out)
 {
     using namespace dlib;
     using namespace cv;
@@ -426,6 +435,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
         }
         
         //cv::flip(cvMatCam, cvMatCam, 0);
+
         // Turn OpenCV's Mat into something dlib can deal with.  Note that this just
         // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
         // long as temp is valid.  Also don't do anything to temp that would cause it
@@ -433,13 +443,98 @@ int ViewerBasic::doCapture(cv::Mat &out)
         // contain dangling pointers.  This basically means you shouldn't modify temp
         // while using cimg.
         cv_image<bgr_pixel> cimg(cvMatCam);
-
+        
         // Detect faces
-        std::vector<rectangle> faces = detector(cimg);
+        std::vector<dlib::rectangle> faces = detector(cimg);;
+        std::vector<dlib::full_object_detection> shapes;
         // Find the pose of each face.
-        std::vector<full_object_detection> shapes;
-        for (unsigned long i = 0; i < faces.size(); ++i)
+        
+        faceDetected = faces.size() > 0;
+        for (unsigned long i = 0; i < faces.size(); ++i){
             shapes.push_back(pose_model(cimg, faces[i]));
+            
+            cv::Rect boundingBox = cv::Rect2f(faces.at(i).left(), faces.at(i).top(), faces.at(i).width(),  faces.at(i).height() );
+            cv::rectangle(cvMatCam, boundingBox, cv::Scalar(255,0,0), 2);
+
+        }
+
+        for(unsigned int i=0 ; i < faceKeyPoints.size() ; i++){
+            cv::Point2i keyPoint = cv::Point2i(faceKeyPoints.at(i).x,faceKeyPoints.at(i).y );
+            drawMarker(cvMatCam, keyPoint, cv::Scalar(0,0,255), 0, 11, 1);
+
+            // cout << "rbf value for : " << "[ " << keyPoint.x << ";" << keyPoint.y << " ] => " << alglib::rbfcalc2(rbfModel, keyPoint.x, keyPoint.y) << "\n";
+        }
+
+        
+
+        // if(key_state(SDLK_UP)) 
+        //     for(unsigned int i=0 ; i < faceKeyPoints.size() ; i++){
+        //         cv::Point2i keyPoint = cv::Point2i(faceKeyPoints.at(i).x,faceKeyPoints.at(i).y );
+                
+        //         for(unsigned int i=0 ; i < faceKeyPoints.size() ; i++){
+
+        //         }
+
+        //         std::cout << "[[" << faceKeyPoints.at(i).x << "," << faceKeyPoints.at(i).y << ", ],\n" ;
+                
+        //     }
+
+
+        
+        // Capture des expression
+        if(key_state(SDLK_LCTRL) && key_state(SDLK_1)){
+            std::cout << "[Sad pose]\n";
+
+            //stockage des poids
+            getFaceKeyPoints(shapes, sadPose);
+            tab_weights[0][0] = 100.0;
+            tab_weights[0][1] = 0.0;
+            std::cout << "[weights saved]\n";
+            
+            for(int i=0; i < tab_weights.size() ; i++)
+                for(int j=0; j < tab_weights[i].size(); j++){
+                    std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
+                }
+
+        
+        }   
+
+        if(key_state(SDLK_LCTRL) && key_state(SDLK_2)){
+            std::cout << "[Smile pose]\n";
+            getFaceKeyPoints(shapes, smilePose);
+            tab_weights[1][0] = 0.0;
+            tab_weights[1][1] = 100.0;
+            std::cout << "[weights saved]\n";
+
+            for(int i=0; i < tab_weights.size() ; i++)
+                for(int j=0; j < tab_weights[i].size(); j++){
+                    std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
+                }            
+        }
+
+        // Calcul des distances inverses
+        getFaceKeyPoints(shapes, faceKeyPoints);
+        if (!smilePose.empty() && !sadPose.empty() && !faceKeyPoints.empty())
+        {
+
+            //Inverse weight distance
+            for (unsigned int i = 0; i < 68; i++)
+            {
+                double distanceSmile = sqrtf((faceKeyPoints.at(i).x - smilePose.at(i).x) * (faceKeyPoints.at(i).x - smilePose.at(i).x) +
+                                             (faceKeyPoints.at(i).y - smilePose.at(i).y) * (faceKeyPoints.at(i).y - smilePose.at(i).y));
+
+                std::cout << "d" << i << " smile : " << 1.0 / distanceSmile << "\n";
+               
+            }
+        }
+
+        faceKeyPoints.clear();
+        
+        
+            
+
+        // poseEstimation(cvMatCam);
+
 
         // Display it all on the screen
         win.clear_overlay();
@@ -451,13 +546,31 @@ int ViewerBasic::doCapture(cv::Mat &out)
         cout << e.what() << endl;
     }
 
-
+    
     return 0;
+}
+
+void ViewerBasic::getFaceKeyPoints(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out)
+{
+    
+    // Récupère les coordonnées des point caractéristique du visage (2D)
+    if(faceDetected){
+        
+        for (unsigned long j = 0; j < 68; j++)
+        {
+            cv::Point2f point(shapes[0].part(j).x(), shapes[0].part(j).y());
+            out.push_back(point);
+
+            
+        }
+        // std::cout <<"[points saved]\n";
+    }
+         
 }
 
 
 ////////////////////////////
-//! Maths functions
+//! Blendshapes functions
 ////////////////////////////
 void ViewerBasic::init_BSShader(){
     // //! https://perso.univ-lyon1.fr/jean-claude.iehl/Public/educ/M1IMAGE/html/group__tuto__mesh__buffer.html
@@ -468,6 +581,9 @@ void ViewerBasic::init_BSShader(){
     //! chargement des differentes poses 
     m_default = read_mesh("../data/blendshapes/Neutral.obj");
     m_mouth_CL = read_mesh("../data/blendshapes/jawOpen.obj");
+
+    //! Initialisation du tableau de position clés 
+    getModelKeyPoints();
 
     if(m_default.normal_buffer_size() == 0)
         std::cout << "ERREUR, pas de vertex normals...";
@@ -484,7 +600,8 @@ void ViewerBasic::draw_blendshapes(){
 
     glUseProgram(program);
 
-    Transform model = Identity() * Scale(60,60,60) ;
+    Transform model = Identity() * Scale(1,1,1);
+    
     Transform view = m_camera.view();
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
 
@@ -499,16 +616,14 @@ void ViewerBasic::draw_blendshapes(){
     program_uniform(program, "color", Red());
 
     program_uniform(program, "light", view(gl.light()));
-
     
 
     //weights
-    
 
     float val = 0.0;
 
     if (key_state(SDLK_UP)) val += 1.0;
-        program_uniform(program, "angry_w", val);
+        program_uniform(program, "w0", val);
     
 
     // On selection notre VAO pour le vertex shader
@@ -520,3 +635,30 @@ void ViewerBasic::draw_blendshapes(){
 }
 
 
+void ViewerBasic::getModelKeyPoints(){
+    // Initialise le tableau modelKeyPoints avec les position des sommets clés
+
+    // Positions pour la pose Neutre
+
+    //-----  Left Eye v1077   -----//
+    modelKeyPoints.push_back(cv::Point3f(0.0312433, 0.0286743, 0.0420298));
+
+    //-----  Left Right Eye v1095   -----//
+    modelKeyPoints.push_back(cv::Point3f(-0.0312433, 0.0286743, 0.0420298));
+
+    //-----  Left Ear v1095  -----//
+    modelKeyPoints.push_back(cv::Point3f(-0.0312433, 0.0286743, 0.0420298));
+
+    //-----    Nose   v8     -----//
+    modelKeyPoints.push_back(cv::Point3f(0.0, -0.00980007, 0.0778864));
+
+    //-----  Right Ear v58   -----//
+    modelKeyPoints.push_back(cv::Point3f(-0.0716188, 0.0130347, -0.0271589));
+
+    //-----  Left Mouth v640 -----//
+    modelKeyPoints.push_back(cv::Point3f(0.0246458, -0.0419488, 0.0466527));
+
+    //-----  Right Mouth v189 -----//
+    modelKeyPoints.push_back(cv::Point3f(-0.0262095, -0.0423298, 0.0460978));
+
+}
