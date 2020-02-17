@@ -14,9 +14,7 @@
 
 int main()
 {   
-   
    ViewerBasic v;
    v.run();
-   
 }
 
