@@ -19,16 +19,22 @@
 
 #include <vector>
 
-
 #include <dlib/opencv.h>
 #include <opencv2/highgui/highgui.hpp>
+// pour les projections 2d/3d
+#include <opencv2/calib3d/calib3d.hpp>
+// fonctions de dessin 
+#include <opencv2/imgproc/imgproc.hpp>
 #include <dlib/image_processing/frontal_face_detector.h>
 #include <dlib/image_processing/render_face_detections.h>
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
 
+
+
 //TODO : modifier la fonction create de Buffer pour initialiser d'un seul coup un tableau de mesh 
+
 
 struct Buffers
 {
@@ -116,46 +122,6 @@ struct Buffers
         vertex_count += mesh1.vertex_count();
     }
 
-    // void create(std::vector<Mesh> meshes){
-
-    //     // cree et configure un vertex array object: conserve la description des attributs de sommets
-    //     glGenVertexArrays(1, &vao);
-    //     glBindVertexArray(vao);
-
-    //     // creer, initialiser le buffer : positions + normals + texcoords du mesh
-    //     glGenBuffers(1, &vertex_buffer);
-    //     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-
-    //     // taille totale du buffer
-    //     Mesh first = meshes.at(0);
-    //     size_t size = first.vertex_buffer_size() + first.texcoord_buffer_size() + first.normal_buffer_size() + first.color_buffer_size();
-    //     glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
-
-    //     // transfere les positions des sommets
-    //     size_t offset = 0;
-    //     size = first.vertex_buffer_size();
-    //     glBufferSubData(GL_ARRAY_BUFFER, offset, size, first.vertex_buffer());
-    //     // et configure l'attribut 0, vec3 position
-    //     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
-    //     glEnableVertexAttribArray(0);
-
-    //     for(int i=0 ; i < meshes.size() ; i++){
-    //         if(!meshes.at(i).vertex_buffer_size()) return;
-
-    //         // transfere les positions des sommets
-    //         offset = offset + size;
-    //         size = meshes.at(i).vertex_buffer_size();
-    //         glBufferSubData(GL_ARRAY_BUFFER, offset, size, meshes.at(i).vertex_buffer());
-    //         // et configure l'attribut 0, vec3 position
-    //         glVertexAttribPointer(i, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
-    //         glEnableVertexAttribArray(i);
-
-    //         vertex_count = meshes.at(i).vertex_count();
-    //     }
-    // }
-
-
-
     void release( )
     {
         glDeleteVertexArrays(1, &vao);
@@ -173,18 +139,6 @@ public:
 
     //! La fonction d'affichage
     int render();
-
-    //! OpenCV
-    cv::Mat cvMatCam;
-    cv::VideoCapture cap;
-    int initCvCapture();
-    int doCapture(cv::Mat &out);
-
-    //! dLib
-    void loadFaceDetectionModels();
-    dlib::shape_predictor pose_model;
-    dlib::frontal_face_detector detector;
-    dlib::image_window win;
 
     void help();
 
@@ -223,19 +177,57 @@ protected:
 
     void manageCameraLight();
 
-    
-    
     GLuint texID;
     GLuint fboID;
     int initFBO(GLuint &id);
     int renderToFBO(cv::Mat &cvImage);
 
-    //! Fonctions mathematiques
-    void init_BSShader();
-    void draw_blendshapes();
-    void createVAO(GLuint );
+    //! OpenCV
+    cv::Mat cvMatCam;
+    cv::VideoCapture cap;
+   
+    int initCvCapture(); 
+    int doCvCapture(cv::Mat &out);
+
+    
+    
+
+    //! dLib
+    void loadFaceDetectionModels();
+    void getFaceKeyPoints(std::vector<dlib::full_object_detection> shapes,  std::vector<cv::Point2f> &out);
+    
+    std::vector<cv::Point2f> faceKeyPoints;
+    
+
+    bool faceDetected;
+    std::vector<vec2> neutral_FaceCoordinates;
+    std::vector<vec2> jawOpen_FaceCoordinates;
+    
+    dlib::shape_predictor pose_model;
+    dlib::frontal_face_detector detector;
+    dlib::image_window win;
+
+    
+
+
+
+    //! Blendshape
     GLuint program;
+    void init_BSShader();
+
+    void getModelKeyPoints();
+    std::vector<cv::Point3f> modelKeyPoints;
+    
+
     Transform mvp;
+    cv::Mat camMatrix;
+    void draw_blendshapes();
+
+    // coordonnées des 68 points dans chaque expression
+    std::vector<cv::Point2f> sadPose;
+    std::vector<cv::Point2f> smilePose;
+    std::vector<cv::Point2f> currentPose;
+    std::vector<std::vector<double>> tab_weights;
 
     Mesh m_default,m_mouth_CL,m_mouth_CR;
     //Vertex arrays
