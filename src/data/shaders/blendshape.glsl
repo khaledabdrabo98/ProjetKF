@@ -41,8 +41,8 @@
     in vec3 happy_vp;
     uniform vec3 angry_vp;
 
-    uniform float happy_w;
-    uniform float angry_w;
+    uniform float w1;
+    uniform float w0;
     //\\//\\////\\//\\////\\//\\////\\//\\////\\//\\//
 
 
@@ -51,19 +51,17 @@
 
         //\\//\\//\\//\\//\\//\\//\\//\\ Partie Blenshape
 
-        float neutral_w = 1.0 - happy_w - angry_w;
+        float neutral_w = 1.0 - w1 - w0;
         clamp (neutral_w, 0.0, 1.0);
 
 
         // get a sum of weights and work out factors for each target
-        float sum_w = happy_w + angry_w + neutral_w;
-        float happy_f = happy_w / sum_w;
-        float angry_f = angry_w / sum_w;
-        float neutral_f = neutral_w / sum_w;
+        float sum_w = w1 + w0 + neutral_w;
+
 
         // interpolate targets to give us current pose
-        clamp(angry_w, 0.0,1.0);
-        vec3 pos = (1-angry_w)*position + angry_w*position1;
+        clamp(w0, 0.0, 1.0);
+        vec3 pos = (1-w0)*position + w0*position1;
         
         //\\//\\////\\//\\////\\//\\////\\//\\////\\//\\//
 
