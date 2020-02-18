@@ -21,6 +21,7 @@
 
 
 #include <dlib/opencv.h>
+#include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 // pour les projections 2d/3d
 #include <opencv2/calib3d/calib3d.hpp>
@@ -222,6 +223,15 @@ protected:
     cv::Mat camMatrix;
     void draw_blendshapes();
     
+
+    //vectors for face rotation, PnP functions (Points and Prespective)
+    std::vector<cv::Point2d> image_points;
+    std::vector<cv::Point3d> model_points;
+    // variables qui appliquent la rotation et la translation sur le modele 3D
+    Transform transformModel;
+    Transform rotationModel;
+    void computePnP();
+
     // coordonnées des 68 points dans chaque expression
     std::vector<cv::Point2f> neutralPose;
     std::vector<cv::Point2f> mouthOpenPose;
