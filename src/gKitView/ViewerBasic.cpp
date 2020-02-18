@@ -87,11 +87,12 @@ int ViewerBasic::init()
     
     //! Blendshapes
     init_BSShader();
-    tab_weights.push_back(std::vector<double>());
-    tab_weights.push_back(std::vector<double>());
-    tab_weights[0].push_back(0.0);
-    tab_weights[1].push_back(0.0);
- 
+    
+    //                 [0]         [1]
+    //               w0   w1     w0   w1
+    tab_weights = {{0.0, 0.0}, {0.0, 0.0}};
+    
+    
     return 1;
 }
 
@@ -453,92 +454,87 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
         for (unsigned long i = 0; i < faces.size(); ++i){
             shapes.push_back(pose_model(cimg, faces[i]));
             
-            cv::Rect boundingBox = cv::Rect2f(faces.at(i).left(), faces.at(i).top(), faces.at(i).width(),  faces.at(i).height() );
+            cv::Rect boundingBox = cv::Rect2f(faces.at(i).left(), faces.at(i).top(), faces.at(i).width(),  faces.at(i).height());
             cv::rectangle(cvMatCam, boundingBox, cv::Scalar(255,0,0), 2);
+            drawMarker(cvMatCam, cv::Point(shapes.at(0).part(30).x(), shapes.at(0).part(30).y()), cv::Scalar(255,255,0) );
 
         }
 
+        getCurrentPose(shapes, currentPose);
         for(unsigned int i=0 ; i < faceKeyPoints.size() ; i++){
             cv::Point2i keyPoint = cv::Point2i(faceKeyPoints.at(i).x,faceKeyPoints.at(i).y );
-            drawMarker(cvMatCam, keyPoint, cv::Scalar(0,0,255), 0, 11, 1);
-
-            // cout << "rbf value for : " << "[ " << keyPoint.x << ";" << keyPoint.y << " ] => " << alglib::rbfcalc2(rbfModel, keyPoint.x, keyPoint.y) << "\n";
+            drawMarker(cvMatCam, keyPoint, cv::Scalar(0,0,255), 0, 11, 1);  
         }
 
-        
-
-        // if(key_state(SDLK_UP)) 
-        //     for(unsigned int i=0 ; i < faceKeyPoints.size() ; i++){
-        //         cv::Point2i keyPoint = cv::Point2i(faceKeyPoints.at(i).x,faceKeyPoints.at(i).y );
-                
-        //         for(unsigned int i=0 ; i < faceKeyPoints.size() ; i++){
-
-        //         }
-
-        //         std::cout << "[[" << faceKeyPoints.at(i).x << "," << faceKeyPoints.at(i).y << ", ],\n" ;
-                
-        //     }
-
-
-        
+    
         // Capture des expression
-        if(key_state(SDLK_LCTRL) && key_state(SDLK_1)){
-            std::cout << "[Sad pose]\n";
+        if(key_state(SDLK_1)){
+
+            std::cout << "[saving neutral pose...]\n";
 
             //stockage des poids
-            getFaceKeyPoints(shapes, sadPose);
+            getCurrentPose(shapes, neutralPose);
             tab_weights[0][0] = 100.0;
             tab_weights[0][1] = 0.0;
-            std::cout << "[weights saved]\n";
+            std::cout << "[weights for neutral pose saved !]\n";
             
-            for(int i=0; i < tab_weights.size() ; i++)
-                for(int j=0; j < tab_weights[i].size(); j++){
-                    std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
-                }
+            displayTab2D(tab_weights);
 
-        
         }   
 
-        if(key_state(SDLK_LCTRL) && key_state(SDLK_2)){
-            std::cout << "[Smile pose]\n";
-            getFaceKeyPoints(shapes, smilePose);
+
+        if(key_state(SDLK_2)){
+            std::cout << "[saving mouth open pose]\n";
+            getCurrentPose(shapes, mouthOpenPose);
             tab_weights[1][0] = 0.0;
             tab_weights[1][1] = 100.0;
-            std::cout << "[weights saved]\n";
+            std::cout << "[weights for mouth open pose saved !]\n";
+            // std::cout << tab_weights[1][0]  << tab_weights[1][1];
 
-            for(int i=0; i < tab_weights.size() ; i++)
-                for(int j=0; j < tab_weights[i].size(); j++){
-                    std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
-                }            
+            // for(int i=0; i < tab_weights.size() ; i++)
+            //     for(int j=0; j < tab_weights[i].size(); j++){
+            //         std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
+            // }
+            displayTab2D(tab_weights);           
         }
 
         // Calcul des distances inverses
-        getFaceKeyPoints(shapes, faceKeyPoints);
-        if (!smilePose.empty() && !sadPose.empty() && !faceKeyPoints.empty())
+        
+        double x_offset = faces.at(0).bl_corner().x();
+        double y_offset = faces.at(0).bl_corner().y();
+        double p = 2.0;
+        if (!mouthOpenPose.empty())
         {
-
-            //Inverse weight distance
             for (unsigned int i = 0; i < 68; i++)
             {
-                double distanceSmile = sqrtf((faceKeyPoints.at(i).x - smilePose.at(i).x) * (faceKeyPoints.at(i).x - smilePose.at(i).x) +
-                                             (faceKeyPoints.at(i).y - smilePose.at(i).y) * (faceKeyPoints.at(i).y - smilePose.at(i).y));
-
-                std::cout << "d" << i << " smile : " << 1.0 / distanceSmile << "\n";
-               
+                double dist = distance(currentPose.at(i), mouthOpenPose.at(i));
+                std::cout << "d" << i << " => " <<  1 / std::pow(dist, p) << "\n";
             }
         }
 
         faceKeyPoints.clear();
         
         
-            
-
-        // poseEstimation(cvMatCam);
-
 
         // Display it all on the screen
         win.clear_overlay();
         win.set_image(cimg);
+        
+        //affichage des coordonnes de la bounding box
+        dlibDrawText(dlib::point(faces.at(0).left(), faces.at(0).top()), std::to_string(faces.at(0).tl_corner().x()) + ";" + std::to_string(faces.at(0).tl_corner().y()));
+        dlibDrawText(dlib::point(faces.at(0).left(), faces.at(0).bottom()), std::to_string(faces.at(0).bl_corner().x()) + ";" + std::to_string(faces.at(0).bl_corner().y()));
+        dlibDrawText(dlib::point(faces.at(0).right(), faces.at(0).top()), std::to_string(faces.at(0).tr_corner().x()) + ";" + std::to_string(faces.at(0).tr_corner().y()));
+        dlibDrawText(dlib::point(faces.at(0).right(), faces.at(0).bottom()), std::to_string(faces.at(0).br_corner().x()) + ";" + std::to_string(faces.at(0).br_corner().y()));
+        
+        //DEBUG
+        dlibDrawText(dlib::point(shapes.at(0).part(51).x(), shapes.at(0).part(51).y()), 
+        std::to_string(shapes.at(0).part(51).x() - x_offset) + ";" + 
+    
+        std::to_string(y_offset - shapes.at(0).part(51).y()));
+        
+        
+        
+        
         win.add_overlay(render_face_detections(shapes));
     }
     catch (exception &e)
@@ -550,7 +546,26 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
     return 0;
 }
 
-void ViewerBasic::getFaceKeyPoints(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out)
+double ViewerBasic::distance(cv::Point2f a,cv::Point2f b ){
+    return sqrtf(((b.x - a.x) * (b.x - a.x)) + ((b.y - a.y) * (b.y - a.y)));
+}
+
+
+void ViewerBasic::dlibDrawText(const dlib::point &p, const string &s){
+    win.add_overlay(dlib::image_window::overlay_rect(dlib::rectangle(p), dlib::rgb_pixel(255,255,0), s));
+}
+
+void ViewerBasic::displayTab2D(std::vector<std::vector<double>> tab_weights){
+            for(int i=0; i < tab_weights.size() ; i++){
+                for(int j=0; j < tab_weights[i].size(); j++){
+                    std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
+                }
+            }
+                
+
+}
+
+void ViewerBasic::getCurrentPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out)
 {
     
     // Récupère les coordonnées des point caractéristique du visage (2D)
