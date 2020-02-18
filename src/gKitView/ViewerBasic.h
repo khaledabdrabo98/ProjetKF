@@ -19,6 +19,7 @@
 
 #include <vector>
 
+
 #include <dlib/opencv.h>
 #include <opencv2/highgui/highgui.hpp>
 // pour les projections 2d/3d
@@ -194,8 +195,8 @@ protected:
 
     //! dLib
     void loadFaceDetectionModels();
-    void getFaceKeyPoints(std::vector<dlib::full_object_detection> shapes,  std::vector<cv::Point2f> &out);
     
+    void dlibDrawText(const dlib::point &p, const std::string &s);
     std::vector<cv::Point2f> faceKeyPoints;
     
 
@@ -211,23 +212,27 @@ protected:
 
 
 
-    //! Blendshape
+    //! Draw des models 3D avec un shader custom
     GLuint program;
     void init_BSShader();
 
     void getModelKeyPoints();
     std::vector<cv::Point3f> modelKeyPoints;
-    
-
     Transform mvp;
     cv::Mat camMatrix;
     void draw_blendshapes();
-
+    
     // coordonnées des 68 points dans chaque expression
-    std::vector<cv::Point2f> sadPose;
-    std::vector<cv::Point2f> smilePose;
+    std::vector<cv::Point2f> neutralPose;
+    std::vector<cv::Point2f> mouthOpenPose;
     std::vector<cv::Point2f> currentPose;
     std::vector<std::vector<double>> tab_weights;
+
+    double distance(cv::Point2f a,cv::Point2f b );
+    void displayTab2D(std::vector<std::vector<double>> tab_weights);
+    void getCurrentPose(std::vector<dlib::full_object_detection> shapes,  std::vector<cv::Point2f> &out);
+
+    
 
     Mesh m_default,m_mouth_CL,m_mouth_CR;
     //Vertex arrays
