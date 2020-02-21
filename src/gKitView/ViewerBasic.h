@@ -190,6 +190,8 @@ protected:
     int initCvCapture(); 
     int doCvCapture(cv::Mat &out);
 
+    float val;
+    double oof = 1.0;
     
     
 
@@ -207,9 +209,6 @@ protected:
     dlib::shape_predictor pose_model;
     dlib::frontal_face_detector detector;
     dlib::image_window win;
-
-    
-
 
 
     //! Draw des models 3D avec un shader custom
