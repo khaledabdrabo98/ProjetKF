@@ -63,7 +63,7 @@ int ViewerBasic::init()
 	if (txt) cout << "OpenGl Shading Language Version " << (const char*)txt << endl;
 
 	// etat par defaut openGL
-    glClearColor(0.5f, 0.5f, 0.9f, 1);
+    glClearColor(0.13f, 0.13f, 0.13f, 1);
    
     glEnable(GL_DEPTH_TEST);
 
@@ -84,7 +84,7 @@ int ViewerBasic::init()
     initFBO(texID);
     initCvCapture();
     
-    
+    val=0.0;
     //! Blendshapes
     init_BSShader();
     
@@ -451,18 +451,19 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
         // Find the pose of each face.
         
         faceDetected = faces.size() > 0;
+
         for (unsigned long i = 0; i < faces.size(); ++i){
             shapes.push_back(pose_model(cimg, faces[i]));
             
             cv::Rect boundingBox = cv::Rect2f(faces.at(i).left(), faces.at(i).top(), faces.at(i).width(),  faces.at(i).height());
             cv::rectangle(cvMatCam, boundingBox, cv::Scalar(255,0,0), 2);
-            drawMarker(cvMatCam, cv::Point(shapes.at(0).part(30).x(), shapes.at(0).part(30).y()), cv::Scalar(255,255,0) );
+            // drawMarker(cvMatCam, cv::Point(shapes.at(0).part(30).x(), shapes.at(0).part(30).y()), cv::Scalar(255,255,0) );
 
         }
 
         getCurrentPose(shapes, currentPose);
-        for(unsigned int i=0 ; i < faceKeyPoints.size() ; i++){
-            cv::Point2i keyPoint = cv::Point2i(faceKeyPoints.at(i).x,faceKeyPoints.at(i).y );
+        for(unsigned int i=0 ; i < currentPose.size() ; i++){
+            cv::Point2i keyPoint = cv::Point2i(currentPose.at(i).x,currentPose.at(i).y );
             drawMarker(cvMatCam, keyPoint, cv::Scalar(0,0,255), 0, 11, 1);  
         }
 
@@ -493,30 +494,75 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
 
             // for(int i=0; i < tab_weights.size() ; i++)
             //     for(int j=0; j < tab_weights[i].size(); j++){
-            //         std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
+            //         std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl; 
             // }
             displayTab2D(tab_weights);           
         }
-
-        // Calcul des distances inverses
+        cv::circle(cvMatCam, cv::Point(0,0), 3, cv::Scalar(255,0,0));
         
-        double x_offset = faces.at(0).bl_corner().x();
-        double y_offset = faces.at(0).bl_corner().y();
+        // Calcul des distances inverses
+        double x_offset = currentPose.at(30).x;
+        double y_offset = currentPose.at(30).y;
+
+
+        /* Sur DLib les coordoonéées Y sont inversées : soustraire la taille de la fenetre (512) à y et prendre la valeur absolue */
         double p = 2.0;
+        double sum_w, sum_dist = 0;
+        
+
+        if(key_state(SDLK_3)) {
+                    oof += 1.0;
+                    std::cout << oof << std::endl;
+        }
+        //TODO aligner les point capturés d'une pose avec la pose actuellement capturée
         if (!mouthOpenPose.empty())
         {
             for (unsigned int i = 0; i < 68; i++)
-            {
-                double dist = distance(currentPose.at(i), mouthOpenPose.at(i));
-                std::cout << "d" << i << " => " <<  1 / std::pow(dist, p) << "\n";
+            { 
+                
+                double dist = distance(cv::Point2d(currentPose.at(i).x, currentPose.at(i).y) ,
+                                       cv::Point2d(mouthOpenPose.at(i).x + (x_offset- mouthOpenPose.at(30).x) , mouthOpenPose.at(i).y + (y_offset-mouthOpenPose.at(30).y) ));
+
+                dist = pow(dist, 0.15);
+                drawMarker(cvMatCam, cv::Point(mouthOpenPose.at(i).x + (x_offset- mouthOpenPose.at(30).x) , mouthOpenPose.at(i).y + (y_offset-mouthOpenPose.at(30).y) ),cv::Scalar(255, 255, 0), 0, 10);
+                
+                // cout << "currentPose" << currentPose.at(i).x << "/" << currentPose.at(i).y << "\n";
+                // cout << "moutPose" << mouthOpenPose.at(i).x + (x_offset- mouthOpenPose.at(30).x) << "/" << mouthOpenPose.at(i).y + (y_offset-mouthOpenPose.at(30).y) << "\n";
+                sum_dist += dist;
+                if(dist == 0.0) dist += 0.01; 
+                sum_w += 1/(dist);
+
+                val = (sum_w/(sum_dist))-0.3;
+                if(val > 0.8) val = 1.0;
+                if(val < 0.1) val = 0.0;
+
+                std::cout << "sum_dist"
+                          << " => " << sum_dist << "\n";
+                std::cout << "sum_w"
+                          << " => " << sum_w << "\n";
+                std::cout << "weight: " << val << "\n";
+
+                sum_w = 0;
+                sum_dist = 0;
             }
+            
+            
+            
+            
+           
+
         }
 
-        faceKeyPoints.clear();
         
+
+
+
+        faceKeyPoints.clear();
+        currentPose.clear();
         
 
         // Display it all on the screen
+        
         win.clear_overlay();
         win.set_image(cimg);
         
@@ -530,14 +576,11 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
         dlibDrawText(dlib::point(shapes.at(0).part(51).x(), shapes.at(0).part(51).y()), 
         std::to_string(shapes.at(0).part(51).x() - x_offset) + ";" + 
     
-        std::to_string(y_offset - shapes.at(0).part(51).y()));
-        
-        
-        
-        
+        std::to_string(shapes.at(0).part(51).y() - y_offset ));
+               
         win.add_overlay(render_face_detections(shapes));
     }
-    catch (exception &e)
+    catch (exception &e) 
     {
         cout << e.what() << endl;
     }
@@ -547,7 +590,7 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
 }
 
 double ViewerBasic::distance(cv::Point2f a,cv::Point2f b ){
-    return sqrtf(((b.x - a.x) * (b.x - a.x)) + ((b.y - a.y) * (b.y - a.y)));
+    return sqrtf( std::pow(b.x - a.x, 2) + std::pow(b.y - a.y, 2) );
 }
 
 
@@ -574,9 +617,7 @@ void ViewerBasic::getCurrentPose(std::vector<dlib::full_object_detection> shapes
         for (unsigned long j = 0; j < 68; j++)
         {
             cv::Point2f point(shapes[0].part(j).x(), shapes[0].part(j).y());
-            out.push_back(point);
-
-            
+            out.push_back(point);            
         }
         // std::cout <<"[points saved]\n";
     }
@@ -635,9 +676,9 @@ void ViewerBasic::draw_blendshapes(){
 
     //weights
 
-    float val = 0.0;
+    
 
-    if (key_state(SDLK_UP)) val += 1.0;
+    // if (key_state(SDLK_UP)) val += 1.0;
         program_uniform(program, "w0", val);
     
 
