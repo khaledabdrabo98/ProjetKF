@@ -385,13 +385,13 @@ void ViewerBasic::manageCameraLight()
 
 
 int ViewerBasic::initCvCapture(){
-    cap = cv::VideoCapture(-1); //0
+    cap = cv::VideoCapture(0); 
     
     faceDetected = false;
-    cap.set(10, .5); //CV_CAP_PROP_BRIGHTNESS
+    cap.set(CV_CAP_PROP_BRIGHTNESS, .5); 
     
-    cap.set(4, 512); //CV_CAP_PROP_FRAME_HEIGHT
-    cap.set(3, 512); //CV_CAP_PROP_FRAME_WIDTH
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 512);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 512);
     if(!cap.isOpened()){
         cerr << "Unable to connect to camera" << endl;
         return 1;
