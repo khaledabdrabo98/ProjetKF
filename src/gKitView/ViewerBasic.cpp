@@ -68,7 +68,7 @@ int ViewerBasic::init()
     glEnable(GL_DEPTH_TEST);
 
     m_camera.lookat( Point(0,0,0), 30 );
-    m_camera.move(99);
+    m_camera.move(99.5);
     
     gl.light( Point(0, 20, 20), White() );
 
@@ -92,6 +92,13 @@ int ViewerBasic::init()
     //               w0   w1     w0   w1
     tab_weights = {{0.0, 0.0}, {0.0, 0.0}};
     
+    // 3D model points.
+    model_points.push_back(cv::Point3d(0.0f, 0.0f, 0.0f));            // Nose tip
+    model_points.push_back(cv::Point3d(0.0f, -33.0f, -6.5f));         // Chin
+    model_points.push_back(cv::Point3d(-22.5f, 17.0f, -13.5f));       // Left eye left corner
+    model_points.push_back(cv::Point3d(22.5f, 17.0f, -13.5f));        // Right eye right corner
+    model_points.push_back(cv::Point3d(-15.0f, -15.0f, -12.5f));      // Left Mouth corner
+    model_points.push_back(cv::Point3d(15.0f, -15.0f, -12.5f));       // Right mouth corner
     
     return 1;
 }
@@ -378,13 +385,13 @@ void ViewerBasic::manageCameraLight()
 
 
 int ViewerBasic::initCvCapture(){
-    cap = cv::VideoCapture(0);
+    cap = cv::VideoCapture(-1); //0
     
     faceDetected = false;
-    cap.set(CV_CAP_PROP_BRIGHTNESS, .5);
+    cap.set(10, .5); //CV_CAP_PROP_BRIGHTNESS
     
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 512);
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, 512);
+    cap.set(4, 512); //CV_CAP_PROP_FRAME_HEIGHT
+    cap.set(3, 512); //CV_CAP_PROP_FRAME_WIDTH
     if(!cap.isOpened()){
         cerr << "Unable to connect to camera" << endl;
         return 1;
@@ -418,6 +425,77 @@ void ViewerBasic::loadFaceDetectionModels(){
 
     
     
+}
+
+void ViewerBasic::computePnP(){
+
+    using namespace dlib;
+    using namespace cv;
+    
+    //need to make sure that there is at least 1 face present to use the PnP function
+    if(faceDetected){
+
+        image_points.push_back( currentPose[33] );    // Nose tip
+        image_points.push_back( currentPose[8]  );    // Chin
+        image_points.push_back( currentPose[45] );    // Left eye left corner
+        image_points.push_back( currentPose[36] );    // Right eye right corner
+        image_points.push_back( currentPose[54] );    // Left Mouth corner
+        image_points.push_back( currentPose[48] );    // Right mouth corner
+        
+        //PnP functions
+        // Camera internals
+        double focal_length = cvMatCam.cols; // Approximate focal length.
+        Point2d center = cv::Point2d(cvMatCam.cols/2,cvMatCam.rows/2);
+        cv::Mat camera_matrix = (cv::Mat_<double>(3,3) << focal_length, 0, center.x, 0 , focal_length, center.y, 0, 0, 1);
+        cv::Mat dist_coeffs = cv::Mat::zeros(4,1,cv::DataType<double>::type); // Assuming no lens distortion
+        
+        //cout << "Camera Matrix " << endl << camera_matrix << endl ;
+        cv::Mat rotation_vector; // Rotation in axis-angle form
+        cv::Mat translation_vector;
+        
+        // Solve for pose
+        solvePnP(model_points, image_points, camera_matrix, dist_coeffs, rotation_vector, translation_vector);
+    
+        
+        // Project a 3D point (0, 0, 1000.0) onto the image plane.
+        // We use this to draw a line sticking out of the nose
+        
+        std::vector<Point3d> nose_end_point3D;
+        std::vector<Point2d> nose_end_point2D;
+        nose_end_point3D.push_back(Point3d(0,0,1000.0));
+        
+        projectPoints(nose_end_point3D, rotation_vector, translation_vector, camera_matrix, dist_coeffs, nose_end_point2D);
+        
+        
+        for(int i=0; i < image_points.size(); i++)
+        {
+            circle(cvMatCam, image_points[i], 3, Scalar(0,0,255), -1);
+        }
+        
+        cv::line(cvMatCam,image_points[0], nose_end_point2D[0], cv::Scalar(255,0,0), 2);
+        
+        transformModel = Translation(translation_vector.at<double>(0)/1000 , -translation_vector.at<double>(1)/1000 , translation_vector.at<double>(2)/1000); 
+        rotationModel = RotationX(rotation_vector.at<double>(0)*180/M_PI) * RotationY(rotation_vector.at<double>(1)*180/M_PI) * RotationZ(rotation_vector.at<double>(2)*180/M_PI);
+
+        cout << "Rotation Vector " << rotation_vector << endl;
+
+        cout << "Rotation Vector " << rotation_vector.size() << endl;
+
+        cout << "Rotation Vector 0 => " << rotation_vector.at<double>(0)*180/M_PI << endl;
+        cout << "Rotation Vector 1 => " << rotation_vector.at<double>(1)*180/M_PI << endl;
+        cout << "Rotation Vector 2 => " << rotation_vector.at<double>(2)*180/M_PI << endl;
+        //cout << "Translation Vector" << endl << translation_vector << endl;
+
+        cout << "translation_vector axe z => " << 2-(translation_vector.at<double>(2)/1000) << endl;
+        
+        //cout <<  nose_end_point2D << endl;
+
+    }else{
+        // if there is no detected face, then reset the models' position
+        transformModel = Translation(0,0,0) * Scale(0.3, 0.3, 0.3);
+        rotationModel = RotationX(0) * RotationY(0) * RotationZ(0);
+    }
+    image_points.clear();
 }
 
 int ViewerBasic::doCvCapture(cv::Mat &out)
@@ -467,37 +545,38 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
             drawMarker(cvMatCam, keyPoint, cv::Scalar(0,0,255), 0, 11, 1);  
         }
 
+        computePnP();
     
-        // Capture des expression
-        if(key_state(SDLK_1)){
+        if(faceDetected){
+            // Capture des expression
+            if(key_state(SDLK_1)){
 
-            std::cout << "[saving neutral pose...]\n";
+                std::cout << "[saving neutral pose...]\n";
 
-            //stockage des poids
-            getCurrentPose(shapes, neutralPose);
-            tab_weights[0][0] = 100.0;
-            tab_weights[0][1] = 0.0;
-            std::cout << "[weights for neutral pose saved !]\n";
-            
-            displayTab2D(tab_weights);
+                //stockage des poids
+                getCurrentPose(shapes, neutralPose);
+                tab_weights[0][0] = 100.0;
+                tab_weights[0][1] = 0.0;
+                std::cout << "[weights for neutral pose saved !]\n";
+                
+                displayTab2D(tab_weights);
 
-        }   
+            }   
 
 
-        if(key_state(SDLK_2)){
-            std::cout << "[saving mouth open pose]\n";
-            getCurrentPose(shapes, mouthOpenPose);
-            tab_weights[1][0] = 0.0;
-            tab_weights[1][1] = 100.0;
-            std::cout << "[weights for mouth open pose saved !]\n";
-            // std::cout << tab_weights[1][0]  << tab_weights[1][1];
-
-            // for(int i=0; i < tab_weights.size() ; i++)
-            //     for(int j=0; j < tab_weights[i].size(); j++){
-            //         std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl; 
-            // }
-            displayTab2D(tab_weights);           
-        }
+            if(key_state(SDLK_2)){
+                std::cout << "[saving mouth open pose]\n";
+                getCurrentPose(shapes, mouthOpenPose);
+                tab_weights[1][0] = 0.0;
+                tab_weights[1][1] = 100.0;
+                std::cout << "[weights for mouth open pose saved !]\n";
+                // std::cout << tab_weights[1][0]  << tab_weights[1][1];
+                // for(int i=0; i < tab_weights.size() ; i++)
+                //     for(int j=0; j < tab_weights[i].size(); j++){
+                //         std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl; 
+                // }
+                displayTab2D(tab_weights);           
+            }
         cv::circle(cvMatCam, cv::Point(0,0), 3, cv::Scalar(255,0,0));
         
         // Calcul des distances inverses
@@ -545,27 +624,7 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
                 sum_w = 0;
                 sum_dist = 0;
             }
-            
-            
-            
-            
-           
-
-        }
-
-        
-
-
-
-        faceKeyPoints.clear();
-        currentPose.clear();
-        
-
-        // Display it all on the screen
-        
-        win.clear_overlay();
-        win.set_image(cimg);
-        
+        }   
         //affichage des coordonnes de la bounding box
         dlibDrawText(dlib::point(faces.at(0).left(), faces.at(0).top()), std::to_string(faces.at(0).tl_corner().x()) + ";" + std::to_string(faces.at(0).tl_corner().y()));
         dlibDrawText(dlib::point(faces.at(0).left(), faces.at(0).bottom()), std::to_string(faces.at(0).bl_corner().x()) + ";" + std::to_string(faces.at(0).bl_corner().y()));
@@ -576,9 +635,17 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
         dlibDrawText(dlib::point(shapes.at(0).part(51).x(), shapes.at(0).part(51).y()), 
         std::to_string(shapes.at(0).part(51).x() - x_offset) + ";" + 
     
-        std::to_string(shapes.at(0).part(51).y() - y_offset ));
-               
+        std::to_string(y_offset - shapes.at(0).part(51).y()));     
+
+        faceKeyPoints.clear();
+        currentPose.clear();
+
+        // Display it all on the screen
+        
+        win.clear_overlay();
+        win.set_image(cimg);
         win.add_overlay(render_face_detections(shapes));
+    }
     }
     catch (exception &e) 
     {
@@ -604,8 +671,6 @@ void ViewerBasic::displayTab2D(std::vector<std::vector<double>> tab_weights){
                     std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
                 }
             }
-                
-
 }
 
 void ViewerBasic::getCurrentPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out)
@@ -661,7 +726,7 @@ void ViewerBasic::draw_blendshapes(){
     Transform view = m_camera.view();
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
 
-    Transform mv = m_camera.view() * model;
+    Transform mv = m_camera.view() * model * transformModel * rotationModel;
     mvp = projection * mv;
 
     program_uniform(program, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
