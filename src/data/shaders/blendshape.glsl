@@ -34,15 +34,23 @@
     #endif
 
     //\\//\\//\\//\\//\\//\\//\\//\\ Partie Blenshape
-    layout(location= 0) in vec3 position;
-    layout(location= 4) in vec3 position1;
+    layout(location= 0) in vec3 p_neutral;
+    layout(location= 1) in vec3 p_jawOpen;
+    layout(location= 2) in vec3 p_jawLeft;
+    layout(location= 3) in vec3 p_jawRight;
+    layout(location= 4) in vec3 p_eyeBrowsRaised;
 
     in vec3 neutral_vp;
     in vec3 happy_vp;
     uniform vec3 angry_vp;
 
     uniform float w1;
-    uniform float w0;
+    
+    uniform float w_neutral;
+    uniform float w_jawOpen;
+    uniform float w_jawLeft;
+    uniform float w_jawRight;
+    uniform float w_eyeBrowsRaised;
     //\\//\\////\\//\\////\\//\\////\\//\\////\\//\\//
 
 
@@ -51,18 +59,23 @@
 
         //\\//\\//\\//\\//\\//\\//\\//\\ Partie Blenshape
 
-        float neutral_w = 1.0 - w1 - w0;
-        clamp (neutral_w, 0.0, 1.0);
-
-
         // get a sum of weights and work out factors for each target
-        float sum_w = w1 + w0 + neutral_w;
+        float sum_w = w_neutral + w_jawOpen + w_jawLeft + w_jawRight + w_eyeBrowsRaised;
+        float f_neutral = w_neutral /sum_w;
+        float f_jawOpen = w_jawOpen / sum_w;
+        float f_jawLeft = w_jawLeft / sum_w;
+        float f_jawRight = w_jawRight / sum_w;
+        float f_eyeBrowsRaised = w_eyeBrowsRaised / sum_w;
+        
 
 
         // interpolate targets to give us current pose
-        clamp(w0, 0.0, 1.0);
-        vec3 pos = (1-w0)*position + w0*position1;
+        // clamp(w0, 0.0, 1.0);
+        // vec3 pos = (1-w_jawOpen)*p_neutral + w_jawOpen*p_jawOpen;
+
+        vec3 pos = (f_neutral * p_neutral) + (f_jawOpen * p_jawOpen) + (f_jawLeft * p_jawLeft) + (f_jawRight * p_jawRight) + (f_eyeBrowsRaised * p_eyeBrowsRaised) ;
         
+
         //\\//\\////\\//\\////\\//\\////\\//\\////\\//\\//
 
 
