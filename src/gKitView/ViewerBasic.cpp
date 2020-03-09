@@ -68,7 +68,7 @@ int ViewerBasic::init()
     glEnable(GL_DEPTH_TEST);
 
     m_camera.lookat( Point(0,0,0), 30 );
-    m_camera.move(99.5);
+    m_camera.move(98);
     
     gl.light( Point(0, 20, 20), White() );
 
@@ -85,13 +85,15 @@ int ViewerBasic::init()
     initCvCapture();
     
     val=0.0;
+    offsetNum = 0.0;
     //! Blendshapes
     init_BSShader();
     
     //                 [0]         [1]
     //               w0   w1     w0   w1
     tab_weights = {{0.0, 0.0}, {0.0, 0.0}};
-    
+
+
     // 3D model points.
     model_points.push_back(cv::Point3d(0.0f, 0.0f, 0.0f));            // Nose tip
     model_points.push_back(cv::Point3d(0.0f, -33.0f, -6.5f));         // Chin
@@ -227,6 +229,7 @@ int ViewerBasic::render()
 
     draw_blendshapes();
 
+    
     //renderToFBO(cvMatCam);
 
     // t1.join();
@@ -450,19 +453,22 @@ void ViewerBasic::computePnP(){
         cv::Mat dist_coeffs = cv::Mat::zeros(4,1,cv::DataType<double>::type); // Assuming no lens distortion
         
         //cout << "Camera Matrix " << endl << camera_matrix << endl ;
-        cv::Mat rotation_vector; // Rotation in axis-angle form
-        cv::Mat translation_vector;
+         rotation_vector; // Rotation in axis-angle form
+         translation_vector;
+
+         std::vector<cv::Mat> rotation_mean;
         
         // Solve for pose
         solvePnP(model_points, image_points, camera_matrix, dist_coeffs, rotation_vector, translation_vector);
-    
+
+        
         
         // Project a 3D point (0, 0, 1000.0) onto the image plane.
         // We use this to draw a line sticking out of the nose
         
         std::vector<Point3d> nose_end_point3D;
         std::vector<Point2d> nose_end_point2D;
-        nose_end_point3D.push_back(Point3d(0,0,1000.0));
+        nose_end_point3D.push_back(Point3d(0,0,1000));
         
         projectPoints(nose_end_point3D, rotation_vector, translation_vector, camera_matrix, dist_coeffs, nose_end_point2D);
         
@@ -475,18 +481,18 @@ void ViewerBasic::computePnP(){
         cv::line(cvMatCam,image_points[0], nose_end_point2D[0], cv::Scalar(255,0,0), 2);
         
         transformModel = Translation(translation_vector.at<double>(0)/1000 , -translation_vector.at<double>(1)/1000 , translation_vector.at<double>(2)/1000); 
-        rotationModel = RotationX(rotation_vector.at<double>(0)*180/M_PI) * RotationY(rotation_vector.at<double>(1)*180/M_PI) * RotationZ(rotation_vector.at<double>(2)*180/M_PI);
+        // rotationModel = RotationX(rotation_vector.at<double>(0)*180/M_PI) * RotationY(rotation_vector.at<double>(1)*180/M_PI) * RotationZ(rotation_vector.at<double>(2)*180/M_PI);
 
         cout << "Rotation Vector " << rotation_vector << endl;
 
-        cout << "Rotation Vector " << rotation_vector.size() << endl;
+        // cout << "Rotation Vector " << rotation_vector.size() << endl;
 
         cout << "Rotation Vector 0 => " << rotation_vector.at<double>(0)*180/M_PI << endl;
         cout << "Rotation Vector 1 => " << rotation_vector.at<double>(1)*180/M_PI << endl;
         cout << "Rotation Vector 2 => " << rotation_vector.at<double>(2)*180/M_PI << endl;
-        //cout << "Translation Vector" << endl << translation_vector << endl;
+        // //cout << "Translation Vector" << endl << translation_vector << endl;
 
-        cout << "translation_vector axe z => " << 2-(translation_vector.at<double>(2)/1000) << endl;
+        // cout << "translation_vector axe z => " << 2-(translation_vector.at<double>(2)/1000) << endl;
         
         //cout <<  nose_end_point2D << endl;
 
@@ -513,21 +519,14 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
             return -1;
         }
         
-        //cv::flip(cvMatCam, cvMatCam, 0);
 
-        // Turn OpenCV's Mat into something dlib can deal with.  Note that this just
-        // wraps the Mat object, it doesn't copy anything.  So cimg is only valid as
-        // long as temp is valid.  Also don't do anything to temp that would cause it
-        // to reallocate the memory which stores the image as that will make cimg
-        // contain dangling pointers.  This basically means you shouldn't modify temp
-        // while using cimg.
         cv_image<bgr_pixel> cimg(cvMatCam);
         
         // Detect faces
         std::vector<dlib::rectangle> faces = detector(cimg);;
         std::vector<dlib::full_object_detection> shapes;
-        // Find the pose of each face.
         
+        // Find the pose of each face.
         faceDetected = faces.size() > 0;
 
         for (unsigned long i = 0; i < faces.size(); ++i){
@@ -535,117 +534,107 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
             
             cv::Rect boundingBox = cv::Rect2f(faces.at(i).left(), faces.at(i).top(), faces.at(i).width(),  faces.at(i).height());
             cv::rectangle(cvMatCam, boundingBox, cv::Scalar(255,0,0), 2);
-            // drawMarker(cvMatCam, cv::Point(shapes.at(0).part(30).x(), shapes.at(0).part(30).y()), cv::Scalar(255,255,0) );
+            
 
         }
 
-        getCurrentPose(shapes, currentPose);
+        getPose(shapes, currentPose);
         for(unsigned int i=0 ; i < currentPose.size() ; i++){
             cv::Point2i keyPoint = cv::Point2i(currentPose.at(i).x,currentPose.at(i).y );
             drawMarker(cvMatCam, keyPoint, cv::Scalar(0,0,255), 0, 11, 1);  
         }
 
-        computePnP();
-    
-        if(faceDetected){
+        // computePnP();
+        
+        
+
+    if(faceDetected){
             // Capture des expression
-            if(key_state(SDLK_1)){
+        if(key_state(SDLK_1)){
 
                 std::cout << "[saving neutral pose...]\n";
 
                 //stockage des poids
-                getCurrentPose(shapes, neutralPose);
+                getPose(shapes, p_neutral);
                 tab_weights[0][0] = 100.0;
                 tab_weights[0][1] = 0.0;
                 std::cout << "[weights for neutral pose saved !]\n";
                 
                 displayTab2D(tab_weights);
 
-            }   
-
-
-            if(key_state(SDLK_2)){
-                std::cout << "[saving mouth open pose]\n";
-                getCurrentPose(shapes, mouthOpenPose);
-                tab_weights[1][0] = 0.0;
-                tab_weights[1][1] = 100.0;
-                std::cout << "[weights for mouth open pose saved !]\n";
-                // std::cout << tab_weights[1][0]  << tab_weights[1][1];
-                // for(int i=0; i < tab_weights.size() ; i++)
-                //     for(int j=0; j < tab_weights[i].size(); j++){
-                //         std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl; 
-                // }
-                displayTab2D(tab_weights);           
-            }
-        cv::circle(cvMatCam, cv::Point(0,0), 3, cv::Scalar(255,0,0));
-        
-        // Calcul des distances inverses
-        double x_offset = currentPose.at(30).x;
-        double y_offset = currentPose.at(30).y;
-
-
-        /* Sur DLib les coordoonéées Y sont inversées : soustraire la taille de la fenetre (512) à y et prendre la valeur absolue */
-        double p = 2.0;
-        double sum_w, sum_dist = 0;
-        
-
-        if(key_state(SDLK_3)) {
-                    oof += 1.0;
-                    std::cout << oof << std::endl;
         }
-        //TODO aligner les point capturés d'une pose avec la pose actuellement capturée
-        if (!mouthOpenPose.empty())
+
+        if (key_state(SDLK_2))
         {
-            for (unsigned int i = 0; i < 68; i++)
-            { 
-                
-                double dist = distance(cv::Point2d(currentPose.at(i).x, currentPose.at(i).y) ,
-                                       cv::Point2d(mouthOpenPose.at(i).x + (x_offset- mouthOpenPose.at(30).x) , mouthOpenPose.at(i).y + (y_offset-mouthOpenPose.at(30).y) ));
+            std::cout << "[saving jaw open pose]\n";
+            getPose(shapes, p_jawOpen);
+            tab_weights[1][0] = 0.0;
+            tab_weights[1][1] = 100.0;
+            std::cout << "[weights for mouth open pose saved !]\n";
 
-                dist = pow(dist, 0.15);
-                drawMarker(cvMatCam, cv::Point(mouthOpenPose.at(i).x + (x_offset- mouthOpenPose.at(30).x) , mouthOpenPose.at(i).y + (y_offset-mouthOpenPose.at(30).y) ),cv::Scalar(255, 255, 0), 0, 10);
-                
-                // cout << "currentPose" << currentPose.at(i).x << "/" << currentPose.at(i).y << "\n";
-                // cout << "moutPose" << mouthOpenPose.at(i).x + (x_offset- mouthOpenPose.at(30).x) << "/" << mouthOpenPose.at(i).y + (y_offset-mouthOpenPose.at(30).y) << "\n";
-                sum_dist += dist;
-                if(dist == 0.0) dist += 0.01; 
-                sum_w += 1/(dist);
+            displayTab2D(tab_weights);
+        }
 
-                val = (sum_w/(sum_dist))-0.3;
-                if(val > 0.8) val = 1.0;
-                if(val < 0.1) val = 0.0;
+        if (key_state(SDLK_3))
+        {
+            std::cout << "[saving jaw left pose]\n";
+            getPose(shapes, p_jawLeft);
+            tab_weights[1][0] = 0.0;
+            tab_weights[1][1] = 100.0;
+            std::cout << "[weights for mouth open pose saved !]\n";
 
-                std::cout << "sum_dist"
-                          << " => " << sum_dist << "\n";
-                std::cout << "sum_w"
-                          << " => " << sum_w << "\n";
-                std::cout << "weight: " << val << "\n";
+            displayTab2D(tab_weights);
+        }
 
-                sum_w = 0;
-                sum_dist = 0;
-            }
-        }   
-        //affichage des coordonnes de la bounding box
-        dlibDrawText(dlib::point(faces.at(0).left(), faces.at(0).top()), std::to_string(faces.at(0).tl_corner().x()) + ";" + std::to_string(faces.at(0).tl_corner().y()));
-        dlibDrawText(dlib::point(faces.at(0).left(), faces.at(0).bottom()), std::to_string(faces.at(0).bl_corner().x()) + ";" + std::to_string(faces.at(0).bl_corner().y()));
-        dlibDrawText(dlib::point(faces.at(0).right(), faces.at(0).top()), std::to_string(faces.at(0).tr_corner().x()) + ";" + std::to_string(faces.at(0).tr_corner().y()));
-        dlibDrawText(dlib::point(faces.at(0).right(), faces.at(0).bottom()), std::to_string(faces.at(0).br_corner().x()) + ";" + std::to_string(faces.at(0).br_corner().y()));
+        if (key_state(SDLK_4))
+        {
+            std::cout << "[saving  jaw right pose]\n";
+            getPose(shapes, p_jawRight);
+            tab_weights[1][0] = 0.0;
+            tab_weights[1][1] = 100.0;
+            std::cout << "[weights for mouth open pose saved !]\n";
+
+            displayTab2D(tab_weights);
+        }
+
+        if (key_state(SDLK_5))
+        {
+            std::cout << "[saving eyebrows up]\n";
+            getPose(shapes, p_eyeBrowsRaised);
+            tab_weights[1][0] = 0.0;
+            tab_weights[1][1] = 100.0;
+            std::cout << "[weights for mouth open pose saved !]\n";
+
+            displayTab2D(tab_weights);
+        }
+
+
         
-        //DEBUG
-        dlibDrawText(dlib::point(shapes.at(0).part(51).x(), shapes.at(0).part(51).y()), 
-        std::to_string(shapes.at(0).part(51).x() - x_offset) + ";" + 
-    
-        std::to_string(y_offset - shapes.at(0).part(51).y()));     
+
+        //TODO aligner les point capturés d'une pose avec la pose actuellement capturée
+        if (!p_jawOpen.empty())//&& !p_jawLeft.empty() )
+        {
+            
+            w_neutral = computeWeight(currentPose, p_neutral);
+            w_jawOpen = computeWeight(currentPose, p_jawOpen);
+            w_jawLeft = computeWeight(currentPose, p_jawLeft);
+            w_jawRight = computeWeight(currentPose, p_jawRight);
+            w_eyeBrowsRaised = computeWeight(currentPose, p_eyeBrowsRaised); 
+            
+        }
 
         faceKeyPoints.clear();
         currentPose.clear();
 
         // Display it all on the screen
-        
         win.clear_overlay();
         win.set_image(cimg);
         win.add_overlay(render_face_detections(shapes));
     }
+
+
+
+
     }
     catch (exception &e) 
     {
@@ -655,6 +644,41 @@ int ViewerBasic::doCvCapture(cv::Mat &out)
     
     return 0;
 }
+
+ double ViewerBasic::computeWeight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression ){
+            double sum_w, sum_dist = 0;
+            double weight = 0;
+            for (unsigned int i = 0; i < 68; i++)
+            {
+                double x_offset = currentPose.at(27).x - expression.at(27).x;
+                double y_offset = currentPose.at(27).y - expression.at(27).y;
+
+                double dist = distance(cv::Point2d(currentPose.at(i).x, currentPose.at(i).y),
+                                       cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset));
+
+                // smooth
+                dist = pow(dist, 0.19);
+
+                sum_dist += dist;
+                if (dist == 0.0) dist = 0.01;
+                    
+                sum_w += 1 / (dist);
+
+                weight = (sum_w / (sum_dist)) - 0.2;
+                if (weight > 1.0) weight = 1.0;
+                if (weight < 0.1) weight = 0.01;
+
+                // std::cout << "Sum of distances | Sum of Weights | Weight value : " << sum_dist << " | " << sum_w << " | " << val << "\n";
+                drawMarker(cvMatCam, cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset) , cv::Scalar(255, 255, 0), 0, 10);
+                sum_w = 0;
+                sum_dist = 0;
+            }
+
+            return weight;
+
+}
+
+
 
 double ViewerBasic::distance(cv::Point2f a,cv::Point2f b ){
     return sqrtf( std::pow(b.x - a.x, 2) + std::pow(b.y - a.y, 2) );
@@ -673,7 +697,7 @@ void ViewerBasic::displayTab2D(std::vector<std::vector<double>> tab_weights){
             }
 }
 
-void ViewerBasic::getCurrentPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out)
+void ViewerBasic::getPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out)
 {
     
     // Récupère les coordonnées des point caractéristique du visage (2D)
@@ -700,19 +724,33 @@ void ViewerBasic::init_BSShader(){
     program_print_errors(program);
 
     //! chargement des differentes poses 
-    m_default = read_mesh("../data/blendshapes/Neutral.obj");
-    m_mouth_CL = read_mesh("../data/blendshapes/jawOpen.obj");
+    m_neutral = read_mesh("../data/blendshapes/Neutral.obj");
+    m_jawOpen = read_mesh("../data/blendshapes/jawOpen.obj");
+    m_jawLeft = read_mesh("../data/blendshapes/mouthSmileLeft.obj");
+    m_jawRight = read_mesh("../data/blendshapes/mouthSmileRight.obj");
+    m_eyeBrowsRaised = read_mesh("../data/blendshapes/browInnerUp.obj");
 
     //! Initialisation du tableau de position clés 
     getModelKeyPoints();
 
-    if(m_default.normal_buffer_size() == 0)
+    if(m_neutral.normal_buffer_size() == 0)
         std::cout << "ERREUR, pas de vertex normals...";
 
+    std::vector<Mesh> tabMesh;
+    tabMesh.push_back(m_neutral);
+    tabMesh.push_back(m_jawOpen);
+    tabMesh.push_back(m_jawLeft);
+    tabMesh.push_back(m_jawRight);
+    tabMesh.push_back(m_eyeBrowsRaised);
+
     // cree un VAO qui va contenir la position des sommet de nos mesh 
-    mVA1.create(m_default, m_mouth_CL);
-    m_default.release(); 
-    m_mouth_CR.release();
+    mVA1.create(tabMesh);
+    m_neutral.release(); 
+    m_jawOpen.release();
+    m_jawLeft.release();
+    m_jawRight.release();
+    m_eyeBrowsRaised.release();
+
     
 }
 
@@ -733,7 +771,7 @@ void ViewerBasic::draw_blendshapes(){
     program_uniform(program, "mvpMatrix", mvp);
     program_uniform(program, "mvMatrix", mv);
     
-    program_uniform(program, "mesh_color", m_default.default_color());
+    program_uniform(program, "mesh_color", m_neutral.default_color());
     program_uniform(program, "color", Red());
 
     program_uniform(program, "light", view(gl.light()));
@@ -744,7 +782,11 @@ void ViewerBasic::draw_blendshapes(){
     
 
     // if (key_state(SDLK_UP)) val += 1.0;
-        program_uniform(program, "w0", val);
+        program_uniform(program, "w_jawOpen", w_jawOpen);
+        program_uniform(program, "w_jawLeft", w_jawLeft);
+        program_uniform(program, "w_jawRight", w_jawRight);
+        program_uniform(program, "w_eyeBrowsRaised", w_eyeBrowsRaised);
+        
     
 
     // On selection notre VAO pour le vertex shader
