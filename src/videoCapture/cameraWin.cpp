@@ -5,14 +5,15 @@ CameraWin::CameraWin(){
 }
 
 int CameraWin::initCvCapture(){
-    cap = cv::VideoCapture(-1); 
+    cap = cv::VideoCapture(0); //-1
     
-    cap.set(10, .5); 
+    faceDetected = false;
+    cap.set(CV_CAP_PROP_BRIGHTNESS, .5); //10
     
-    cap.set(4, 512);
-    cap.set(3, 512);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT, 512); //4
+    cap.set(CV_CAP_PROP_FRAME_WIDTH, 512); //3
     if(!cap.isOpened()){
-        std::cerr << "Unable to connect to camera" << std::endl;
+        cerr << "Unable to connect to camera" << endl;
         return 1;
     }
     
