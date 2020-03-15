@@ -18,16 +18,19 @@ find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 
 
-include_directories(${SDL2_INCLUDE_DIRS}  ${SDL2IMAGE_INCLUDE_DIRS} ${GKIT_CORE_INCLUDE_DIR} ${GKIT_VIEW_INCLUDE_DIR})
+include_directories(${SDL2_INCLUDE_DIRS}  ${SDL2IMAGE_INCLUDE_DIRS} ${GKIT_CORE_INCLUDE_DIR} ${CV_VIDEOCAPTURE_INCLUDE_DIR})
 
 set(GKIT_CORE_INCLUDE_DIR gKitCore)
 set(GKIT_VIEW_INCLUDE_DIR gKitView)
+set(VIDEOCAPTURE_INCLUDE_DIR cvVideoCapture)
 
 
 file(GLOB GKIT_CORE_SRC gKitCore/*.cpp)
 file(GLOB GKIT_CORE_H gKitCore)
 file(GLOB GKIT_VIEW_SRC gKitView/*.cpp)
 file(GLOB GKIT_VIEW_H gKitView)
+file(GLOB VIDEOCAPTURE_SRC videoCapture/*.cpp)
+file(GLOB VIDEOCAPTURE_H videoCapture)
 
 # Tell cmake we will need dlib.  This command will pull in dlib and compile it
 # into your project.  Note that you don't need to compile or install dlib.  All
@@ -59,7 +62,7 @@ add_subdirectory(../dlib-19.19/dlib dlib_build)
 find_package(OpenCV QUIET)
    if (OpenCV_FOUND)
 	   include_directories(${OpenCV_INCLUDE_DIRS} ${GKIT_VIEW_INCLUDE_DIR} ${GKIT_CORE_INCLUDE_DIR})
-      	   add_executable(lifprojet_am4 ${GKIT_CORE_SRC} ${GKIT_VIEW_SRC}  main.cpp)
+      	   add_executable(lifprojet_am4 ${GKIT_CORE_SRC} ${GKIT_VIEW_SRC} ${VIDEOCAPTURE_SRC}  main.cpp)
             target_link_libraries(lifprojet_am4 dlib::dlib ${OpenCV_LIBS} ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} 
                                                            ${GLEW_LIBRARIES} ${SDL2IMAGE_LIBRARIES} )
 
