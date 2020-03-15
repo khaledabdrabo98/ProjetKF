@@ -22,7 +22,7 @@ include_directories(${SDL2_INCLUDE_DIRS}  ${SDL2IMAGE_INCLUDE_DIRS} ${GKIT_CORE_
 
 set(GKIT_CORE_INCLUDE_DIR gKitCore)
 set(GKIT_VIEW_INCLUDE_DIR gKitView)
-set(VIDEOCAPTURE_INCLUDE_DIR cvVideoCapture)
+set(VIDEOCAPTURE_INCLUDE_DIR videoCapture)
 
 
 file(GLOB GKIT_CORE_SRC gKitCore/*.cpp)
