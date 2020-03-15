@@ -19,6 +19,7 @@
 
 #include <vector>
 
+#include "../videoCapture/cameraWin.h"
 
 #include <dlib/opencv.h>
 #include <opencv2/opencv.hpp>
@@ -180,8 +181,7 @@ struct Buffers
             }
     }
 
-    void release( )
-    {
+    void release(){
         glDeleteVertexArrays(1, &vao);
         glDeleteBuffers(1, &vertex_buffer);
     }
@@ -204,6 +204,8 @@ public:
 	int quit() { return 1;  }
 
 protected:
+
+    CameraWin cam;
 
     Orbiter m_camera;
     DrawParam gl;
@@ -241,12 +243,7 @@ protected:
     int initFBO(GLuint &id);
     int renderToFBO(cv::Mat &cvImage);
 
-    //! OpenCV
-    cv::Mat cvMatCam;
-    cv::VideoCapture cap;
-   
-    int initCvCapture(); 
-    int doCvCapture(cv::Mat &out);
+    int doCapture(cv::Mat &out);
 
     float val;
 
@@ -254,8 +251,6 @@ protected:
     
     //! dLib
     void loadFaceDetectionModels();
-    
-    void dlibDrawText(const dlib::point &p, const std::string &s);
     std::vector<cv::Point2f> faceKeyPoints;
     
 
@@ -265,7 +260,6 @@ protected:
     
     dlib::shape_predictor pose_model;
     dlib::frontal_face_detector detector;
-    dlib::image_window win;
 
 
     //! Draw des models 3D avec un shader custom
@@ -300,10 +294,10 @@ protected:
     void displayTab2D(std::vector<std::vector<double>> tab_weights);
     void getPose(std::vector<dlib::full_object_detection> shapes,  std::vector<cv::Point2f> &out);
     double computeWeight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression );
+    void inputWeights(std::vector<dlib::full_object_detection> tab_shapes);
 
 
-    double offsetNum;
-    
+    double offsetNum;   
 
     Mesh m_neutral,m_jawOpen,m_jawRight,m_jawLeft, m_eyeBrowsRaised;
     //Vertex arrays
@@ -311,12 +305,7 @@ protected:
     cv::Mat rotation_vector; // Rotation in axis-angle form
     cv::Mat translation_vector;
     
-
-    
-    
 };
-
-
 
 #endif
 
