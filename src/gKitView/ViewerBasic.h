@@ -141,6 +141,7 @@ struct Buffers
     GLuint vao;
     GLuint vertex_buffer;
     GLuint tab_vertex_buffer[100];
+    GLuint vertex_normals_buffer;
     
     int vertex_count;
     Buffers( ) : vao(0), vertex_buffer(0), vertex_count(0) {}
@@ -179,6 +180,24 @@ struct Buffers
                 std::cout << "id : " << id << "\n";
                 vertex_count = mesh.vertex_count();
             }
+
+                // ajout des normales
+                id += 1;
+                glGenBuffers(1, &vertex_normals_buffer);
+                glBindBuffer(GL_ARRAY_BUFFER, vertex_normals_buffer);
+
+                // taille totale du buffer
+                size_t size = tabMeshes.at(0).normal_buffer_size();
+                glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
+                
+                glBufferSubData(GL_ARRAY_BUFFER, offset, size, tabMeshes.at(0).vertex_buffer());
+
+                glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
+                glEnableVertexAttribArray(id);
+
+                std::cout << "id : " << id << "\n";
+
+
     }
 
     void release(){
@@ -208,7 +227,7 @@ protected:
     CameraWin cam;
 
     Orbiter m_camera;
-    DrawParam gl;
+    DrawParam gl,gl1;
     bool mb_cullface;
     bool mb_wireframe;
 
