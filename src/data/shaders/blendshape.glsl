@@ -2,8 +2,8 @@
 
 
 
-// #define USE_NORMAL
-// #define USE_LIGHT
+#define USE_NORMAL
+#define USE_LIGHT
 // #define USE_ALPHATEST
 
 // #define USE_TEXCOORD
@@ -23,13 +23,13 @@
     #endif
 
     #ifdef USE_NORMAL
-        layout(location= 2) in vec3 normal;
+        layout(location= 1) in vec3 normal;
         uniform mat4 normalMatrix;
         out vec3 vertex_normal;
     #endif
 
     #ifdef USE_COLOR
-        layout(location= 3) in vec4 color;
+        layout(location= 5) in vec4 color;
         out vec4 vertex_color;
     #endif
 
@@ -57,7 +57,7 @@
     void main()
     {
 
-        //\\//\\//\\//\\//\\//\\//\\//\\ Partie Blenshape
+        //! Partie Blenshape
 
         // get a sum of weights and work out factors for each target
         float sum_w = w_neutral + w_jawOpen + w_jawLeft + w_jawRight + w_eyeBrowsRaised;
@@ -66,12 +66,7 @@
         float f_jawLeft = w_jawLeft / sum_w;
         float f_jawRight = w_jawRight / sum_w;
         float f_eyeBrowsRaised = w_eyeBrowsRaised / sum_w;
-        
-
-
-        // interpolate targets to give us current pose
-        // clamp(w0, 0.0, 1.0);
-        // vec3 pos = (1-w_jawOpen)*p_neutral + w_jawOpen*p_jawOpen;
+    
 
         vec3 pos = (f_neutral * p_neutral) + (f_jawOpen * p_jawOpen) + (f_jawLeft * p_jawLeft) + (f_jawRight * p_jawRight) + (f_eyeBrowsRaised * p_eyeBrowsRaised) ;
         
@@ -81,7 +76,7 @@
 
         gl_Position= mvpMatrix * vec4(pos, 1);
         
-        vertex_position= vec3(mvMatrix * vec4(pos, 1));
+        vertex_position = vec3(mvMatrix * vec4(pos, 1));
 
         #ifdef USE_TEXCOORD
             vertex_texcoord= texcoord;
@@ -92,7 +87,7 @@
         #endif
 
         #ifdef USE_COLOR
-            vertex_color= color;
+            vertex_color= color;//vec4(normalize(normal), 1.0);
         #endif
     }
 
