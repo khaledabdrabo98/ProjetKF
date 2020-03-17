@@ -62,14 +62,16 @@ int ViewerBasic::init()
 	if (txt) cout << "OpenGl Shading Language Version " << (const char*)txt << endl;
 
 	// etat par defaut openGL
-    glClearColor(0.13f, 0.13f, 0.13f, 1);
+    glClearColor(0.5f, 0.5f, 0.9f, 1);
    
     glEnable(GL_DEPTH_TEST);
 
     m_camera.lookat( Point(0,0,0), 30 );
-    m_camera.move(98);
+    m_camera.move(0);
     
-    gl.light( Point(0, 20, 20), White() );
+    gl.light( Point(0, 0, 10), White() );
+    
+
 
     init_axe();
     init_grid();
@@ -461,9 +463,9 @@ void ViewerBasic::computePnP(){
         
         cv::line(cam.getCVMatCam(),image_points[0], nose_end_point2D[0], cv::Scalar(255,0,0), 2);
         
-        transformModel = Translation(translation_vector.at<double>(0)/1000 , -translation_vector.at<double>(1)/1000 , translation_vector.at<double>(2)/1000); 
+        transformModel = Translation(translation_vector.at<double>(0)/1000.0 , -translation_vector.at<double>(1)/1000.0 , translation_vector.at<double>(2)/1000.0); 
              
-        // rotationModel = RotationX(rotation_vector.at<double>(0)*180/M_PI) * RotationY(rotation_vector.at<double>(1)*180/M_PI) * RotationZ(rotation_vector.at<double>(2)*180/M_PI);
+        // rotationModel = RotationX(rotation_vector.at<double>(0)*180.0/M_PI) * RotationY(rotation_vector.at<double>(1)*180.0/M_PI) * RotationZ(rotation_vector.at<double>(2)*180.0/M_PI);
     }
 
     image_points.clear();
@@ -475,8 +477,6 @@ void ViewerBasic::inputWeights(std::vector<dlib::full_object_detection> tab_shap
         std::cout << "[saving neutral pose...]\n";
         //stockage des poids
         getPose(tab_shapes, p_neutral);
-        tab_weights[0][0] = 100.0;
-        tab_weights[0][1] = 0.0;
         std::cout << "[weights for neutral pose saved !]\n";
         
         displayTab2D(tab_weights);
@@ -566,7 +566,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
 
         if(faceDetected){
             inputWeights(shapes);
-            computePnP();
+            // computePnP();
 
             faceKeyPoints.clear();
             currentPose.clear();
@@ -648,7 +648,7 @@ void ViewerBasic::init_BSShader(){
     program = read_program("../data/shaders/blendshape.glsl");
     program_print_errors(program);
 
-    //! chargement des differentes poses 
+    //! chargement des differentes poses
     m_neutral = read_mesh("../data/blendshapes/Neutral.obj");
     m_jawOpen = read_mesh("../data/blendshapes/jawOpen.obj");
     m_jawLeft = read_mesh("../data/blendshapes/mouthSmileLeft.obj");
@@ -663,10 +663,10 @@ void ViewerBasic::init_BSShader(){
 
     std::vector<Mesh> tabMesh;
     tabMesh.push_back(m_neutral);
-    tabMesh.push_back(m_jawOpen);
-    tabMesh.push_back(m_jawLeft);
-    tabMesh.push_back(m_jawRight);
-    tabMesh.push_back(m_eyeBrowsRaised);
+    // tabMesh.push_back(m_jawOpen);
+    // tabMesh.push_back(m_jawLeft);
+    // tabMesh.push_back(m_jawRight);
+    // tabMesh.push_back(m_eyeBrowsRaised);
 
     // cree un VAO qui va contenir la position des sommet de nos mesh 
     mVA1.create(tabMesh);
@@ -684,7 +684,7 @@ void ViewerBasic::draw_blendshapes(){
 
     glUseProgram(program);
 
-    Transform model = Identity() * Scale(2,2,2);
+    Transform model = Identity() * Translation(0,0,-10) * Scale(50,50,50);
     
     Transform view = m_camera.view();
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
@@ -700,24 +700,24 @@ void ViewerBasic::draw_blendshapes(){
     program_uniform(program, "color", Red());
 
     program_uniform(program, "light", view(gl.light()));
+    program_uniform(program, "light_color", White());
     
 
     //weights
 
-
-    // if (key_state(SDLK_UP)) val += 1.0;
-        program_uniform(program, "w_jawOpen", w_jawOpen);
-        program_uniform(program, "w_jawLeft", w_jawLeft);
-        program_uniform(program, "w_jawRight", w_jawRight);
-        program_uniform(program, "w_eyeBrowsRaised", w_eyeBrowsRaised);
-        
     
+    program_uniform(program, "w_jawOpen", w_jawOpen);
+    program_uniform(program, "w_jawLeft", w_jawLeft);
+    program_uniform(program, "w_jawRight", w_jawRight);
+    program_uniform(program, "w_eyeBrowsRaised", w_eyeBrowsRaised);
 
     // On selection notre VAO pour le vertex shader
     glBindVertexArray(mVA1.vao);
     
     
     glDrawArrays(GL_TRIANGLES, 0, mVA1.vertex_count);
+
+    
   
 }
 
