@@ -234,6 +234,7 @@ protected:
     Mesh m_axe;
     Mesh m_grid;
     Mesh m_cube;
+    Mesh m_cubemap;
     std::vector<Mesh> blendshapes;
 
     GLuint m_tex_debug;
@@ -243,6 +244,7 @@ protected:
     void init_axe();
     void init_grid();
     void init_cube();
+
     Mesh init_OBJ(const char *filename);
 
     Mesh m_quad;
@@ -259,6 +261,12 @@ protected:
 
     GLuint texID;
     GLuint fboID;
+
+    GLuint m_env_map;
+    void init_cubemap();
+    void draw_cubemap(const Transform& T);
+
+   
     int initFBO(GLuint &id);
     int renderToFBO(cv::Mat &cvImage);
 

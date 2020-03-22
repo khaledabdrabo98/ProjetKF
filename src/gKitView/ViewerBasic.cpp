@@ -67,7 +67,7 @@ int ViewerBasic::init()
     glEnable(GL_DEPTH_TEST);
 
     m_camera.lookat( Point(0,0,0), 30 );
-    m_camera.move(0);
+    m_camera.move(50);
     
     gl.light( Point(0, 0, 10), White() );
     
@@ -77,6 +77,7 @@ int ViewerBasic::init()
     init_grid();
     init_cube();
     init_quad();
+    init_cubemap();
 
     m_tex_debug = read_texture(3, "../data/debug2x2red.png");
     
@@ -180,6 +181,51 @@ void ViewerBasic::init_cube()
     }
 }
 
+void ViewerBasic::init_cubemap()
+{   //                             0           1         2          3         4         5         6         7
+    static float pt[8][3] = { {-1,-1,-1}, {1,-1,-1}, {1,-1,1}, {-1,-1,1}, {-1,1,-1}, {1,1,-1}, {1,1,1}, {-1,1,1} }; //8pts 3coords
+    static int f[6][4] = {    {0,1,2,3}, {5,4,7,6}, {2,1,5,6}, {0,3,7,4}, {3,2,6,7}, {1,0,4,5} }; //6 faces 4 cotés
+    static float n[6][3] = { {0,1,0}, {0,-1,0}, {-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1} };
+ 
+        static float uv[6][4][2] =
+ 
+        {
+ 
+            {{0.25, 0.33},{0.5, 0.33},{0.5, 0},{0.25, 0}}, //bas
+            {{0.5,0.66 },{0.25, 0.66},{0.25,1},{0.5, 1}}, //haut
+            {{0.75, 0.33},{0.5, 0.33},{0.5, 0.66},{0.75, 0.66}}, //droite
+            {{0.25, 0.33},{0, 0.33},{0,0.66},{0.25,0.66}}, //gauche
+            {{1, 0.33},{0.75, 0.33},{0.75, 0.66},{1, 0.66}}, //arriere
+            {{0.5,0.33},{0.25,0.33},{0.25, 0.66},{0.5,0.66}} // Avant
+ 
+        };
+ 
+         m_cubemap = Mesh(GL_TRIANGLE_STRIP);
+         m_cubemap.color( Color(1, 1, 1) );
+ 
+         m_env_map = read_texture(0, smart_path("data/cubemap/skybox.png")) ;
+ 
+          for (int i=0;i<6;i++)
+          {
+                m_cubemap.normal(  n[   i][0], n[i][1], n[i][2] );
+ 
+                m_cubemap.texcoord( uv[i][3][0], uv[i][3][1] );
+                m_cubemap.vertex( pt[ f[i][3] ][0], pt[ f[i][3] ][1], pt[ f[i][3] ][2] );
+ 
+                m_cubemap.texcoord(uv[i][2][0] , uv[i][2][1]);
+                m_cubemap.vertex( pt[ f[i][2] ][0], pt[ f[i][2] ][1], pt[ f[i][2] ][2] );
+ 
+                m_cubemap.texcoord(uv[i][0][0],uv[i][0][1]);
+                m_cubemap.vertex(pt[ f[i][0] ][0], pt[ f[i][0] ][1], pt[ f[i][0] ][2] );
+ 
+                m_cubemap.texcoord(uv[i][1][0],uv[i][1][1]);
+                m_cubemap.vertex( pt[ f[i][1] ][0], pt[ f[i][1] ][1], pt[ f[i][1] ][2] );
+ 
+                m_cubemap.restart_strip();
+    }
+ 
+}
+
 void ViewerBasic::init_quad()
 {
     m_quad = Mesh(GL_TRIANGLE_STRIP);
@@ -210,7 +256,6 @@ Mesh ViewerBasic::init_OBJ(const char *filename){
 /////////////////////////////  
 int ViewerBasic::render()
 {
-    // thread t1(&ViewerBasic::doCapture, this, std::ref(this->cam.getCVMatCam()));
     
     // Efface l'ecran
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -224,14 +269,9 @@ int ViewerBasic::render()
     // Lance la capture webcam avec openCV
     doCapture(cam.getCVMatCam());
     
-    draw_quad(Scale(5,5,5)*Translation(10,0,0), m_tex_debug);
+    draw_cubemap(Identity()*Scale(20,20,20));
 
     draw_blendshapes();
-
-    
-    //renderToFBO(cvMatCam);
-
-    // t1.join();
 
     return 1;
 }
@@ -306,6 +346,14 @@ void ViewerBasic::draw_cube(const Transform& T)
 	gl.texture(0);
 	gl.model(T);
 	gl.draw(m_cube);
+}
+
+void ViewerBasic::draw_cubemap(const Transform& T)
+{
+	gl.lighting(true);
+	gl.texture(m_env_map);
+	gl.model(T);
+	gl.draw(m_cubemap);
 }
 
 void ViewerBasic::draw_quad(const Transform& T, const GLuint &Tex)
@@ -663,10 +711,10 @@ void ViewerBasic::init_BSShader(){
 
     std::vector<Mesh> tabMesh;
     tabMesh.push_back(m_neutral);
-    // tabMesh.push_back(m_jawOpen);
-    // tabMesh.push_back(m_jawLeft);
-    // tabMesh.push_back(m_jawRight);
-    // tabMesh.push_back(m_eyeBrowsRaised);
+    tabMesh.push_back(m_jawOpen);
+    tabMesh.push_back(m_jawLeft);
+    tabMesh.push_back(m_jawRight);
+    tabMesh.push_back(m_eyeBrowsRaised);
 
     // cree un VAO qui va contenir la position des sommet de nos mesh 
     mVA1.create(tabMesh);
