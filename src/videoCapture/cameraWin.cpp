@@ -19,8 +19,8 @@ int CameraWin::initCvCapture(){
     return 0;
 } 
 
-void CameraWin::dlibDrawText(const dlib::point &p, const std::string &s){
-    win.add_overlay(dlib::image_window::overlay_rect(dlib::rectangle(p), dlib::rgb_pixel(255,255,0), s));
+void CameraWin::dlibDrawText(const dlib::point &p, const std::string &s, const dlib::rgb_pixel& color){
+    win.add_overlay(dlib::image_window::overlay_rect(dlib::rectangle(p), color, s));
 }
 
 void CameraWin::displayWin(const dlib::cv_image<dlib::bgr_pixel> &img, const std::vector<dlib::full_object_detection> &shapes){
