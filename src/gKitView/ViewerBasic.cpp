@@ -91,10 +91,6 @@ int ViewerBasic::init()
 
     //! Blendshapes
     init_BSShader();
-    
-    //                 [0]         [1]
-    //               w0   w1     w0   w1
-    tab_weights = {{0.0, 0.0}, {0.0, 0.0}};
 
     // 3D model points.
     model_points.push_back(cv::Point3d(0.0f, 0.0f, 0.0f));            // Nose tip
@@ -526,48 +522,30 @@ void ViewerBasic::inputWeights(std::vector<dlib::full_object_detection> tab_shap
         //stockage des poids
         getPose(tab_shapes, p_neutral);
         std::cout << "[weights for neutral pose saved !]\n";
-        
-        displayTab2D(tab_weights);
     }
 
     if(key_state(SDLK_2)){
         std::cout << "[saving jaw open pose]\n";
         getPose(tab_shapes, p_jawOpen);
-        tab_weights[1][0] = 0.0;
-        tab_weights[1][1] = 100.0;
         std::cout << "[weights for mouth open pose saved !]\n";
-
-        displayTab2D(tab_weights);
     }
 
     if(key_state(SDLK_3)){
         std::cout << "[saving jaw left pose]\n";
         getPose(tab_shapes, p_jawLeft);
-        tab_weights[1][0] = 0.0;
-        tab_weights[1][1] = 100.0;
         std::cout << "[weights for mouth open pose saved !]\n";
-
-        displayTab2D(tab_weights);
     }
 
     if(key_state(SDLK_4)){
         std::cout << "[saving  jaw right pose]\n";
         getPose(tab_shapes, p_jawRight);
-        tab_weights[1][0] = 0.0;
-        tab_weights[1][1] = 100.0;
         std::cout << "[weights for mouth open pose saved !]\n";
-
-        displayTab2D(tab_weights);
     }
 
     if(key_state(SDLK_5)){
         std::cout << "[saving eyebrows up]\n";
         getPose(tab_shapes, p_eyeBrowsRaised);
-        tab_weights[1][0] = 0.0;
-        tab_weights[1][1] = 100.0;
         std::cout << "[weights for mouth open pose saved !]\n";
-
-        displayTab2D(tab_weights);
     }
 
     //TODO aligner les point capturés d'une pose avec la pose actuellement capturée
@@ -698,6 +676,7 @@ void ViewerBasic::init_BSShader(){
 
     //! chargement des differentes poses
     m_neutral = read_mesh("../data/blendshapes/Neutral.obj");
+    m_neutral.color(Color(White()));
     m_jawOpen = read_mesh("../data/blendshapes/jawOpen.obj");
     m_jawLeft = read_mesh("../data/blendshapes/mouthSmileLeft.obj");
     m_jawRight = read_mesh("../data/blendshapes/mouthSmileRight.obj");
