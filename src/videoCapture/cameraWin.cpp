@@ -37,6 +37,10 @@ cv::VideoCapture CameraWin::getCap(){
     return cap;
 }
 
+dlib::image_window CameraWin::get_dlib_window(){
+    return win;
+}
+
 CameraWin::~CameraWin(){
     
 }

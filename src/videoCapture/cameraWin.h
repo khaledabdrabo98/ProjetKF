@@ -17,6 +17,7 @@ class CameraWin{
         void dlibDrawText(const dlib::point &p, const std::string &s);
         cv::Mat& getCVMatCam();
         cv::VideoCapture getCap();
+        dlib::image_window get_dlib_window();
         void displayWin(const dlib::cv_image<dlib::bgr_pixel> &img, const std::vector<dlib::full_object_detection> &shapes); 
 
     private:
