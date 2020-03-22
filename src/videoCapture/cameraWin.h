@@ -14,8 +14,8 @@ class CameraWin{
         CameraWin();
         ~CameraWin();
         int initCvCapture(); 
-        void dlibDrawText(const dlib::point &p, const std::string &s, 
-                        const dlib::rgb_pixel& color);
+        void dlibDrawText(const dlib::point &p, const dlib::rgb_pixel& color,
+                        const std::string &s);
         cv::Mat& getCVMatCam();
         cv::VideoCapture getCap();
         void displayWin(const dlib::cv_image<dlib::bgr_pixel> &img, 
