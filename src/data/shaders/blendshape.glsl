@@ -7,7 +7,7 @@
 // #define USE_ALPHATEST
 
 // #define USE_TEXCOORD
-// #define USE_COLOR
+#define USE_COLOR
 
 
 #ifdef VERTEX_SHADER
