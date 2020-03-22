@@ -10,6 +10,8 @@ using namespace std;
 #define SCREEN_W 1024
 #define SCREEN_H 768
 
+#define MAX_POSES 5
+
 
 /////////////////////////////
 //! Gkit init functions 
@@ -519,33 +521,32 @@ void ViewerBasic::inputWeights(std::vector<dlib::full_object_detection> tab_shap
     // Capture des expression
     if(key_state(SDLK_1)){
         std::cout << "[saving neutral pose...]\n";
-        //stockage des poids
-        getPose(tab_shapes, p_neutral);
-        std::cout << "[weights for neutral pose saved !]\n";
+        getPose(tab_shapes, p_neutral, 0);
+
     }
 
     if(key_state(SDLK_2)){
-        std::cout << "[saving jaw open pose]\n";
-        getPose(tab_shapes, p_jawOpen);
-        std::cout << "[weights for mouth open pose saved !]\n";
+        std::cout << "[Saving pose : Jaw Open]\n";
+        getPose(tab_shapes, p_jawOpen, 1);
+        ;
     }
 
     if(key_state(SDLK_3)){
-        std::cout << "[saving jaw left pose]\n";
-        getPose(tab_shapes, p_jawLeft);
-        std::cout << "[weights for mouth open pose saved !]\n";
+        std::cout << "[Saving pose : Jaw Left]\n";
+        getPose(tab_shapes, p_jawLeft, 2);
+        
     }
 
     if(key_state(SDLK_4)){
-        std::cout << "[saving  jaw right pose]\n";
-        getPose(tab_shapes, p_jawRight);
-        std::cout << "[weights for mouth open pose saved !]\n";
+        std::cout << "[Saving  jaw right pose]\n";
+        getPose(tab_shapes, p_jawRight, 3);
+        
     }
 
     if(key_state(SDLK_5)){
-        std::cout << "[saving eyebrows up]\n";
-        getPose(tab_shapes, p_eyeBrowsRaised);
-        std::cout << "[weights for mouth open pose saved !]\n";
+        std::cout << "[Saving eyebrows up]\n";
+        getPose(tab_shapes, p_eyeBrowsRaised, 4);
+        
     }
 
     //TODO aligner les point capturés d'une pose avec la pose actuellement capturée
@@ -584,7 +585,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
             cv::rectangle(cam.getCVMatCam(), boundingBox, cv::Scalar(255,0,0), 2);
         }
 
-        getPose(shapes, currentPose);
+        getPose(shapes, currentPose, 5);
         for(unsigned int i=0 ; i < currentPose.size() ; i++){
             cv::Point2i keyPoint = cv::Point2i(currentPose.at(i).x,currentPose.at(i).y );
             drawMarker(cam.getCVMatCam(), keyPoint, cv::Scalar(0,0,255), 0, 11, 1);  
@@ -599,6 +600,14 @@ int ViewerBasic::doCapture(cv::Mat &out)
         }
         // Display it all on the screen
         cam.displayWin(cimg, shapes);
+
+        // Display debug messages on screen for poses
+        for(unsigned int i=0 ; i < MAX_POSES ; ++i){
+            if(pose_taken[i]) {
+                print_pose_debug(i);
+            }
+        }
+        
 
     }catch (exception &e){
         cout << e.what() << endl;
@@ -652,14 +661,45 @@ void ViewerBasic::displayTab2D(std::vector<std::vector<double>> tab_weights){
     }
 }
 
-void ViewerBasic::getPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out){
+void ViewerBasic::print_pose_debug(unsigned int id){
+    // Afficge à l'écran un message de debug pour la capture des poses.
+    switch(id) {
+            case 0:
+                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : neutral_pose");
+            break;
+
+            case 1:
+                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : jaw_open pose");
+            break;
+
+            case 2:
+                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : jaw_left pose");
+            break;
+            case 3:
+                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : jaw_right pose");
+            break;
+            
+            case 4:
+                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : eyebrows_up pose");
+            break;
+                
+    }
+}
+
+void ViewerBasic::getPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out, unsigned int id){
     // Récupère les coordonnées des point caractéristique du visage (2D)
+    
     if(faceDetected){
         for (unsigned long j = 0; j < 68; j++){
             cv::Point2f point(shapes[0].part(j).x(), shapes[0].part(j).y());
             out.push_back(point);            
         }
     }
+
+    if(id < MAX_POSES) {
+        pose_taken[id] = true;
+    }
+    
          
 }
 
