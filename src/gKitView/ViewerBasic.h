@@ -223,7 +223,7 @@ public:
 	int quit() { return 1;  }
 
 protected:
-
+    
     CameraWin cam;
 
     Orbiter m_camera;
@@ -308,6 +308,8 @@ protected:
     Transform rotationModel;
     void computePnP();
 
+    //stocke l'état d'une pose (capturée ou non)
+    bool pose_taken[5] = {false};
     // coordonnées des 68 points dans chaque expression
     std::vector<cv::Point2f> p_neutral;
     std::vector<cv::Point2f> p_jawOpen;
@@ -315,13 +317,17 @@ protected:
     std::vector<cv::Point2f> p_jawRight;
     std::vector<cv::Point2f> p_eyeBrowsRaised;
     std::vector<cv::Point2f> currentPose;
-    std::vector<std::vector<double>> tab_weights;
+    void print_pose_debug(unsigned int id);
+    void getPose(std::vector<dlib::full_object_detection> shapes,  std::vector<cv::Point2f> &out, unsigned int id);
+    
+    
 
     double distance(cv::Point2f a,cv::Point2f b );
     void displayTab2D(std::vector<std::vector<double>> tab_weights);
-    void getPose(std::vector<dlib::full_object_detection> shapes,  std::vector<cv::Point2f> &out);
-    double computeWeight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression );
+    
     void inputWeights(std::vector<dlib::full_object_detection> tab_shapes);
+    double computeWeight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression );
+    
 
 
     double offsetNum;   
