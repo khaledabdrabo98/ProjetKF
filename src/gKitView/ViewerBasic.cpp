@@ -253,6 +253,8 @@ int ViewerBasic::render()
     
     draw_cubemap(Identity()*Scale(18,18,18));
 
+    draw_quad(Identity(), m_tex_debug);
+    
     draw_blendshapes();
 
     return 1;
@@ -605,24 +607,27 @@ double ViewerBasic::distance(cv::Point2f a,cv::Point2f b ){
 
 void ViewerBasic::print_pose_debug(unsigned int id){
     // Afficge à l'écran un message de debug pour la capture des poses.
+    dlib::rgb_pixel WHITE(255,255,255);
+    dlib::rgb_pixel GREEN(0,255,0);
+    cam.dlibDrawText(dlib::point(10,10), WHITE, "projetkf - demo lifprojet");
     switch(id) {
             case 0:
-                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : neutral_pose");
+                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : neutral_pose");
             break;
 
             case 1:
-                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : jaw_open pose");
+                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_open pose");
             break;
 
             case 2:
-                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : jaw_left pose");
+                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_left pose");
             break;
             case 3:
-                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : jaw_right pose");
+                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_right pose");
             break;
             
             case 4:
-                cam.dlibDrawText(dlib::point(10,10 + id*15), "SAVED : eyebrows_up pose");
+                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : eyebrows_up pose");
             break;
                 
     }
@@ -658,7 +663,6 @@ void ViewerBasic::init_BSShader(){
 
     //! chargement des differentes poses
     m_neutral = read_mesh("../data/blendshapes/Neutral.obj");
-    m_neutral.color(Color(White()));
     m_jawOpen = read_mesh("../data/blendshapes/jawOpen.obj");
     m_jawLeft = read_mesh("../data/blendshapes/mouthSmileLeft.obj");
     m_jawRight = read_mesh("../data/blendshapes/mouthSmileRight.obj");
@@ -690,6 +694,7 @@ void ViewerBasic::draw_blendshapes(){
     //pour l'instant, les obj n'ont pas de vertex normal/color/texcoord 
 
     glUseProgram(program);
+    
 
     Transform model = Identity() * Translation(0,0,0) * Scale(50,50,50);
     
@@ -704,7 +709,7 @@ void ViewerBasic::draw_blendshapes(){
     program_uniform(program, "mvMatrix", mv);
     
     program_uniform(program, "mesh_color", m_neutral.default_color());
-    program_uniform(program, "color", Red());
+    program_uniform(program, "color", White());
 
     program_uniform(program, "light", view(gl.light()));
     program_uniform(program, "light_color", White());
@@ -720,9 +725,11 @@ void ViewerBasic::draw_blendshapes(){
 
     // On selection notre VAO pour le vertex shader
     glBindVertexArray(mesh_buffer.vao);
+    glBindTexture(GL_TEXTURE_2D, m_tex_debug);
     
     
     glDrawArrays(GL_TRIANGLES, 0, mesh_buffer.vertex_count);
+    
 
     
   
