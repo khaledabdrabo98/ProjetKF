@@ -85,11 +85,6 @@ int ViewerBasic::init()
     
     // OpenCV & dLib
     loadFaceDetectionModels();
-    initFBO(texID);
-    //initCvCapture();
-    
-    val=0.0;
-    offsetNum = 0.0;
 
     //! Blendshapes
     init_BSShader();
@@ -103,16 +98,6 @@ int ViewerBasic::init()
     model_points.push_back(cv::Point3d(15.0f, -15.0f, -12.5f));       // Right mouth corner
     
     return 1;
-}
-
-int ViewerBasic::initFBO(GLuint &id){
-    // setup FBO
-    glGenFramebuffers(1, &fboID);
-    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    return 0;
 }
 
 void ViewerBasic::init_axe(){
@@ -254,7 +239,6 @@ Mesh ViewerBasic::init_OBJ(const char *filename){
 /////////////////////////////  
 int ViewerBasic::render()
 {
-    
     // Efface l'ecran
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -274,39 +258,6 @@ int ViewerBasic::render()
     return 1;
 }
 
-int ViewerBasic::renderToFBO(cv::Mat& cvImage){
-
-    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
-    //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    
-    // glBindTexture(GL_TEXTURE_2D, texID);
-
-    // fixe les parametres de filtrage par defaut
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    // transfere les donnees dans la texture
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGB,
-                 cvImage.cols,
-                 cvImage.rows,
-                 0,
-                 GL_BGR,
-                 GL_UNSIGNED_BYTE,
-                 cvImage.ptr());
-
-    // prefiltre la texture
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-   // glBindTexture(GL_TEXTURE_2D, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    return 0;
-}
-
 /////////////////////////////
 //! Gkit draw functions
 /////////////////////////////  
@@ -317,7 +268,6 @@ void ViewerBasic::draw(const Transform& T,  Mesh &mesh ){
     gl.lighting(false);
     gl.draw(mesh);
     gl.lighting(true);
-
 }
 
 void ViewerBasic::draw_axe(const Transform& T)
@@ -551,11 +501,11 @@ void ViewerBasic::inputWeights(std::vector<dlib::full_object_detection> tab_shap
 
     //TODO aligner les point capturés d'une pose avec la pose actuellement capturée
     if (!p_eyeBrowsRaised.empty()){
-        w_neutral = computeWeight(currentPose, p_neutral);
-        w_jawOpen = computeWeight(currentPose, p_jawOpen);
-        w_jawLeft = computeWeight(currentPose, p_jawLeft);
-        w_jawRight = computeWeight(currentPose, p_jawRight);
-        w_eyeBrowsRaised = computeWeight(currentPose, p_eyeBrowsRaised);   
+        w_neutral = compute_weight(currentPose, p_neutral);
+        w_jawOpen = compute_weight(currentPose, p_jawOpen);
+        w_jawLeft = compute_weight(currentPose, p_jawLeft);
+        w_jawRight = compute_weight(currentPose, p_jawRight);
+        w_eyeBrowsRaised = compute_weight(currentPose, p_eyeBrowsRaised);   
     }
 }
 
@@ -616,7 +566,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
     return 0;
 }
 
-double ViewerBasic::computeWeight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression){
+double ViewerBasic::compute_weight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression){
     double sum_w, sum_dist = 0;
     double weight = 0;
     for (unsigned int i = 0; i < 68; i++){
@@ -651,14 +601,6 @@ double ViewerBasic::computeWeight(std::vector<cv::Point2f> currentPose, std::vec
 
 double ViewerBasic::distance(cv::Point2f a,cv::Point2f b ){
     return sqrtf( std::pow(b.x - a.x, 2) + std::pow(b.y - a.y, 2) );
-}
-
-void ViewerBasic::displayTab2D(std::vector<std::vector<double>> tab_weights){
-    for(int i=0; i < tab_weights.size() ; i++){
-        for(int j=0; j < tab_weights[i].size(); j++){
-            std::cout << "[" << i << "," << j << "] : " << tab_weights.at(i).at(j) << std::endl;
-        }
-    }
 }
 
 void ViewerBasic::print_pose_debug(unsigned int id){
@@ -722,8 +664,6 @@ void ViewerBasic::init_BSShader(){
     m_jawRight = read_mesh("../data/blendshapes/mouthSmileRight.obj");
     m_eyeBrowsRaised = read_mesh("../data/blendshapes/browInnerUp.obj");
 
-    //! Initialisation du tableau de position clés 
-    getModelKeyPoints();
 
     if(m_neutral.normal_buffer_size() == 0)
         std::cout << "ERREUR, pas de vertex normals...";
@@ -736,7 +676,7 @@ void ViewerBasic::init_BSShader(){
     tabMesh.push_back(m_eyeBrowsRaised);
 
     // cree un VAO qui va contenir la position des sommet de nos mesh 
-    mVA1.create(tabMesh);
+    mesh_buffer.create(tabMesh);
     m_neutral.release(); 
     m_jawOpen.release();
     m_jawLeft.release();
@@ -779,40 +719,13 @@ void ViewerBasic::draw_blendshapes(){
     program_uniform(program, "w_eyeBrowsRaised", w_eyeBrowsRaised);
 
     // On selection notre VAO pour le vertex shader
-    glBindVertexArray(mVA1.vao);
+    glBindVertexArray(mesh_buffer.vao);
     
     
-    glDrawArrays(GL_TRIANGLES, 0, mVA1.vertex_count);
+    glDrawArrays(GL_TRIANGLES, 0, mesh_buffer.vertex_count);
 
     
   
 }
 
 
-void ViewerBasic::getModelKeyPoints(){
-    // Initialise le tableau modelKeyPoints avec les position des sommets clés
-
-    // Positions pour la pose Neutre
-
-    //-----  Left Eye v1077   -----//
-    modelKeyPoints.push_back(cv::Point3f(0.0312433, 0.0286743, 0.0420298));
-
-    //-----  Left Right Eye v1095   -----//
-    modelKeyPoints.push_back(cv::Point3f(-0.0312433, 0.0286743, 0.0420298));
-
-    //-----  Left Ear v1095  -----//
-    modelKeyPoints.push_back(cv::Point3f(-0.0312433, 0.0286743, 0.0420298));
-
-    //-----    Nose   v8     -----//
-    modelKeyPoints.push_back(cv::Point3f(0.0, -0.00980007, 0.0778864));
-
-    //-----  Right Ear v58   -----//
-    modelKeyPoints.push_back(cv::Point3f(-0.0716188, 0.0130347, -0.0271589));
-
-    //-----  Left Mouth v640 -----//
-    modelKeyPoints.push_back(cv::Point3f(0.0246458, -0.0419488, 0.0466527));
-
-    //-----  Right Mouth v189 -----//
-    modelKeyPoints.push_back(cv::Point3f(-0.0262095, -0.0423298, 0.0460978));
-
-}
