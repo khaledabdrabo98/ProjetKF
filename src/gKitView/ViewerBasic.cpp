@@ -269,7 +269,7 @@ int ViewerBasic::render()
     // Lance la capture webcam avec openCV
     doCapture(cam.getCVMatCam());
     
-    draw_cubemap(Identity()*Scale(20,20,20));
+    draw_cubemap(Identity()*Scale(18,18,18));
 
     draw_blendshapes();
 
@@ -732,7 +732,7 @@ void ViewerBasic::draw_blendshapes(){
 
     glUseProgram(program);
 
-    Transform model = Identity() * Translation(0,0,-10) * Scale(50,50,50);
+    Transform model = Identity() * Translation(0,0,0) * Scale(50,50,50);
     
     Transform view = m_camera.view();
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
