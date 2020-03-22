@@ -43,6 +43,7 @@ struct Buffers
     GLuint vertex_buffer;
     GLuint tab_vertex_buffer[100];
     GLuint vertex_normals_buffer;
+    GLuint texcoords_buffer;
     
     int vertex_count;
     Buffers( ) : vao(0), vertex_buffer(0), vertex_count(0) {}
@@ -89,11 +90,27 @@ struct Buffers
 
                 // taille totale du buffer
                 size_t size = tabMeshes.at(0).normal_buffer_size();
+                
                 glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
                 
-                glBufferSubData(GL_ARRAY_BUFFER, offset, size, tabMeshes.at(0).vertex_buffer());
+                glBufferSubData(GL_ARRAY_BUFFER, offset, size, tabMeshes.at(0).normal_buffer());
 
                 glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
+                glEnableVertexAttribArray(id);
+                std::cout << "id : " << id << "\n";
+                
+                // ajout des texcoords
+                id += 1;
+                glGenBuffers(1, &texcoords_buffer);
+                glBindBuffer(GL_ARRAY_BUFFER, texcoords_buffer);
+
+                // taille totale du buffer
+                size = tabMeshes.at(0).texcoord_buffer_size();
+                glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
+                
+                glBufferSubData(GL_ARRAY_BUFFER, offset, size, tabMeshes.at(0).texcoord_buffer());
+
+                glVertexAttribPointer(id, 2, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
                 glEnableVertexAttribArray(id);
 
                 std::cout << "id : " << id << "\n";
