@@ -37,7 +37,7 @@ file(GLOB VIDEOCAPTURE_H videoCapture)
 # cmake needs is the dlib source code folder and it will take care of everything.
 
 
-add_subdirectory(../dependencies/dlib-19.19/dlib dlib_build)
+add_subdirectory(../dlib-19.19/dlib dlib_build)
 
 # If you have cmake 3.14 or newer you can even use FetchContent instead of
 # add_subdirectory() to pull in dlib as a dependency.  So instead of using the
