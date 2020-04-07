@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <algorithm>
 
+
 #include "texture.h"
 #include "image_io.h"
 
@@ -90,6 +91,41 @@ GLuint make_texture( const int unit, const ImageData& im, const GLenum texel_typ
     
     // prefiltre la texture
     glGenerateMipmap(GL_TEXTURE_2D);
+    return texture;
+}
+
+GLuint make_texture_cubemap( std::vector<std::string> faces )
+{
+  
+    // cree la texture openGL
+    GLuint texture;
+    glGenTextures(1, &texture);
+    // glActiveTexture(GL_TEXTURE0 + unit);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+
+    int width, height, nrChannels;
+
+    for(size_t i=0; i < faces.size(); ++i){
+        ImageData im = read_image_data(faces[i].c_str());
+        if(!im.data.empty()) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+                         0, GL_RGB, im.width, im.height, 0, GL_RGB, GL_UNSIGNED_BYTE, im.buffer()
+            );
+        }
+        else {
+            printf("Cubemap tex failed to load at path: %s ", faces[i].c_str());
+        }
+    }
+    
+    // fixe les parametres de filtrage par defaut
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    
+    // prefiltre la texture
+    // glGenerate   Mipmap(GL_TEXTURE_CUBE_MAP);
     return texture;
 }
 

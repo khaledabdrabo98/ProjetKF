@@ -2,6 +2,8 @@
 #ifndef _TEXTURE_H
 #define _TEXTURE_H
 
+#include <string>
+
 #include "glcore.h"
 #include "image.h"
 #include "image_io.h"
@@ -17,6 +19,7 @@
 //! cree une texture a partir d'une image im. a detruire avec glDeleteTextures( ). 
 //! \param texel_type permet de choisir la representation interne des valeurs de la texture.
 GLuint make_texture( const int unit, const Image& im, const GLenum texel_type= GL_RGBA32F );
+GLuint make_texture_cubemap( std::vector<std::string> faces );
 
 //! cree une texture a partir des donnees d'une image, cf image_io.h. a detruire avec glDeleteTextures( ).
 //! \param texel_type permet de choisir la representation interne des valeurs de la texture.
