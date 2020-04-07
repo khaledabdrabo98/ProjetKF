@@ -1,7 +1,6 @@
 # Ignored files
 src/build
 src/data
-dlib-19.19/
 gkit2light
 alglib/
 rbf_interpolator/
