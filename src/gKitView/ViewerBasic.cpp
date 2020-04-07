@@ -50,7 +50,7 @@ int ViewerBasic::init()
 	glGetIntegerv(GL_MINOR_VERSION, &minor);
 	cout << "OpenGL version " << major << " " << minor << endl;
 	const GLubyte* txt;
-	
+	 
 	txt = glGetString(GL_VENDOR);
 	if (txt) cout << "OpenGl Vendor "<< (const char*)txt<< endl;
 	
@@ -73,13 +73,12 @@ int ViewerBasic::init()
     
     gl.light( Point(0, 0, 10), White() );
     
-
-
     init_axe();
     init_grid();
     init_cube();
     init_quad();
-    init_cubemap();
+    init_skybox();
+    init_tex_cubemap();
 
     m_tex_debug = read_texture(3, "../data/debug2x2red.png");
     
@@ -87,7 +86,7 @@ int ViewerBasic::init()
     loadFaceDetectionModels();
 
     //! Blendshapes
-    init_BSShader();
+    init_blendshapes();
 
     // 3D model points.
     model_points.push_back(cv::Point3d(0.0f, 0.0f, 0.0f));            // Nose tip
@@ -135,10 +134,11 @@ void ViewerBasic::init_grid(){
 
 void ViewerBasic::init_cube()
 {
-    //                          0           1           2       3           4           5       6           7
+                             
     static float pt[8][3] = { {-1,-1,-1}, {1,-1,-1}, {1,-1,1}, {-1,-1,1}, {-1,1,-1}, {1,1,-1}, {1,1,1}, {-1,1,1} };
     static int f[6][4] = {    {0,1,2,3}, {5,4,7,6}, {2,1,5,6}, {0,3,7,4}, {3,2,6,7}, {1,0,4,5} };
-    static float n[6][3] = { {0,-1,0}, {0,1,0}, {1,0,0}, {-1,0,0}, {0,0,1}, {0,0,-1} };
+    
+    static float n[6][3] = { {0,1,0}, {0,-1,0}, {-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1} };
     int i;
 
     m_cube = Mesh(GL_TRIANGLE_STRIP);
@@ -162,51 +162,45 @@ void ViewerBasic::init_cube()
 
         m_cube.restart_strip();
     }
+
 }
 
-void ViewerBasic::init_cubemap()
-{   //                             0           1         2          3         4         5         6         7
-    static float pt[8][3] = { {-1,-1,-1}, {1,-1,-1}, {1,-1,1}, {-1,-1,1}, {-1,1,-1}, {1,1,-1}, {1,1,1}, {-1,1,1} }; //8pts 3coords
-    static int f[6][4] = {    {0,1,2,3}, {5,4,7,6}, {2,1,5,6}, {0,3,7,4}, {3,2,6,7}, {1,0,4,5} }; //6 faces 4 cotés
-    static float n[6][3] = { {0,1,0}, {0,-1,0}, {-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1} };
- 
-        static float uv[6][4][2] =
- 
-        {
- 
-            {{0.25, 0.33},{0.5, 0.33},{0.5, 0},{0.25, 0}}, //bas
-            {{0.5,0.66 },{0.25, 0.66},{0.25,1},{0.5, 1}}, //haut
-            {{0.75, 0.33},{0.5, 0.33},{0.5, 0.66},{0.75, 0.66}}, //droite
-            {{0.25, 0.33},{0, 0.33},{0,0.66},{0.25,0.66}}, //gauche
-            {{1, 0.33},{0.75, 0.33},{0.75, 0.66},{1, 0.66}}, //arriere
-            {{0.5,0.33},{0.25,0.33},{0.25, 0.66},{0.5,0.66}} // Avant
- 
-        };
- 
-         m_cubemap = Mesh(GL_TRIANGLE_STRIP);
-         m_cubemap.color( Color(1, 1, 1) );
- 
-         m_env_map = read_texture(0, smart_path("data/cubemap/skybox.png")) ;
- 
-          for (int i=0;i<6;i++)
-          {
-                m_cubemap.normal(  n[   i][0], n[i][1], n[i][2] );
- 
-                m_cubemap.texcoord( uv[i][3][0], uv[i][3][1] );
-                m_cubemap.vertex( pt[ f[i][3] ][0], pt[ f[i][3] ][1], pt[ f[i][3] ][2] );
- 
-                m_cubemap.texcoord(uv[i][2][0] , uv[i][2][1]);
-                m_cubemap.vertex( pt[ f[i][2] ][0], pt[ f[i][2] ][1], pt[ f[i][2] ][2] );
- 
-                m_cubemap.texcoord(uv[i][0][0],uv[i][0][1]);
-                m_cubemap.vertex(pt[ f[i][0] ][0], pt[ f[i][0] ][1], pt[ f[i][0] ][2] );
- 
-                m_cubemap.texcoord(uv[i][1][0],uv[i][1][1]);
-                m_cubemap.vertex( pt[ f[i][1] ][0], pt[ f[i][1] ][1], pt[ f[i][1] ][2] );
- 
-                m_cubemap.restart_strip();
-    }
- 
+void ViewerBasic::init_skybox(){
+
+    m_skybox = read_mesh("../data/cube.obj");//Mesh(GL_TRIANGLES);
+    m_skybox.color( Color(1, 1, 1) );
+
+    //VAO
+    std::vector<Mesh> tab_mesh;
+    tab_mesh.push_back(m_skybox);
+    cubemap_buffer.create(tab_mesh);
+    
+}
+
+void ViewerBasic::init_tex_cubemap()
+{  
+    // m_skybox = Mesh(GL_TRIANGLE_STRIP);
+
+    std::string id = to_string(win.cur_cubemap_id);
+    
+    std::vector<std::string> faces = 
+    {
+        "../data/cubemap/0"+id+"/x_pos.jpg",
+        "../data/cubemap/0"+id+"/x_neg.jpg",
+        "../data/cubemap/0"+id+"/y_pos.jpg",
+        "../data/cubemap/0"+id+"/y_neg.jpg",
+        "../data/cubemap/0"+id+"/z_neg.jpg",
+        "../data/cubemap/0"+id+"/z_pos.jpg"
+    };
+    
+    // cubemap split in 6 faces 
+    m_env_map = make_texture_cubemap(faces) ;
+    
+    
+    program_cubemap = read_program("../data/shaders/cubemap.glsl");
+    program_print_errors(program_cubemap);
+
+
 }
 
 void ViewerBasic::init_quad()
@@ -229,11 +223,6 @@ void ViewerBasic::init_quad()
     m_quad.vertex(  1,  1, 0 );
 }
 
-Mesh ViewerBasic::init_OBJ(const char *filename){
-    return read_mesh(filename);
-}
-
-
 /////////////////////////////
 //! Gkit Render functions 
 /////////////////////////////  
@@ -249,12 +238,10 @@ int ViewerBasic::render()
     gl.camera(m_camera);
 
     // Lance la capture webcam avec openCV
-    doCapture(cam.getCVMatCam());
+    doCapture(win.getCVMatCam());
     
-    draw_cubemap(Identity()*Scale(18,18,18));
+    draw_skybox(Scale(20,20,20));
 
-    draw_quad(Identity(), m_tex_debug);
-    
     draw_blendshapes();
 
     return 1;
@@ -296,14 +283,6 @@ void ViewerBasic::draw_cube(const Transform& T)
 	gl.texture(0);
 	gl.model(T);
 	gl.draw(m_cube);
-}
-
-void ViewerBasic::draw_cubemap(const Transform& T)
-{
-	gl.lighting(true);
-	gl.texture(m_env_map);
-	gl.model(T);
-	gl.draw(m_cubemap);
 }
 
 void ViewerBasic::draw_quad(const Transform& T, const GLuint &Tex)
@@ -431,8 +410,8 @@ void ViewerBasic::computePnP(){
         
         // PnP functions
         // Camera internals
-        double focal_length = cam.getCVMatCam().cols; // Approximate focal length
-        cv::Point2d center = cv::Point2d(cam.getCVMatCam().cols/2, cam.getCVMatCam().rows/2);
+        double focal_length = win.getCVMatCam().cols; // Approximate focal length
+        cv::Point2d center = cv::Point2d(win.getCVMatCam().cols/2, win.getCVMatCam().rows/2);
         cv::Mat camera_matrix = (cv::Mat_<double>(3,3) << focal_length, 0, center.x, 0 , focal_length, center.y, 0, 0, 1);
         cv::Mat dist_coeffs = cv::Mat::zeros(4,1,cv::DataType<double>::type); // Assuming no lens distortion
         
@@ -456,10 +435,10 @@ void ViewerBasic::computePnP(){
         
         
         for(int i=0; i < image_points.size(); i++){
-            circle(cam.getCVMatCam(), image_points[i], 3, cv::Scalar(0,0,255), -1);
+            circle(win.getCVMatCam(), image_points[i], 3, cv::Scalar(0,0,255), -1);
         }
         
-        cv::line(cam.getCVMatCam(),image_points[0], nose_end_point2D[0], cv::Scalar(255,0,0), 2);
+        cv::line(win.getCVMatCam(),image_points[0], nose_end_point2D[0], cv::Scalar(255,0,0), 2);
         
         transformModel = Translation(translation_vector.at<double>(0)/1000.0 , -translation_vector.at<double>(1)/1000.0 , translation_vector.at<double>(2)/1000.0); 
              
@@ -471,38 +450,51 @@ void ViewerBasic::computePnP(){
 
 void ViewerBasic::inputWeights(std::vector<dlib::full_object_detection> tab_shapes){
     // Capture des expression
-    if(key_state(SDLK_1)){
+    if(win.is_expression_active(0)){
         std::cout << "[saving neutral pose...]\n";
         getPose(tab_shapes, p_neutral, 0);
+        win.set_active_expression(0, false);
 
     }
 
-    if(key_state(SDLK_2)){
+    if(win.is_expression_active(1)){
         std::cout << "[Saving pose : Jaw Open]\n";
         getPose(tab_shapes, p_jawOpen, 1);
-        ;
+        win.set_active_expression(1, false);
+        
     }
 
-    if(key_state(SDLK_3)){
+    if(win.is_expression_active(2)){
         std::cout << "[Saving pose : Jaw Left]\n";
         getPose(tab_shapes, p_jawLeft, 2);
+        win.set_active_expression(2, false);
         
     }
 
-    if(key_state(SDLK_4)){
+    if(win.is_expression_active(3)){
         std::cout << "[Saving  jaw right pose]\n";
         getPose(tab_shapes, p_jawRight, 3);
+        win.set_active_expression(3, false);
         
     }
 
-    if(key_state(SDLK_5)){
+    if(win.is_expression_active(4)){
         std::cout << "[Saving eyebrows up]\n";
         getPose(tab_shapes, p_eyeBrowsRaised, 4);
+        win.set_active_expression(4, false);
         
     }
 
-    //TODO aligner les point capturés d'une pose avec la pose actuellement capturée
-    if (!p_eyeBrowsRaised.empty()){
+    if(win.cubemapChanged){
+        std::cout << "[Changing cubemap]\n";
+        id_cubemap = win.cur_cubemap_id;
+        init_tex_cubemap();
+        win.cubemapChanged = false;
+    }
+
+    
+    if (!p_neutral.empty() && !p_jawOpen.empty() &&
+        !p_jawLeft.empty() && !p_jawRight.empty() && !p_eyeBrowsRaised.empty()){
         w_neutral = compute_weight(currentPose, p_neutral);
         w_jawOpen = compute_weight(currentPose, p_jawOpen);
         w_jawLeft = compute_weight(currentPose, p_jawLeft);
@@ -517,11 +509,11 @@ int ViewerBasic::doCapture(cv::Mat &out)
     try
     {
         // Grab a frame
-        if (!cam.getCap().read(cam.getCVMatCam())){
+        if (!win.getCap().read(win.getCVMatCam())){
             return -1;
         }
         
-        dlib::cv_image<dlib::bgr_pixel> cimg(cam.getCVMatCam());
+        dlib::cv_image<dlib::bgr_pixel> cimg(win.getCVMatCam());
         
         // Detect faces
         std::vector<dlib::rectangle> faces = detector(cimg);
@@ -534,13 +526,13 @@ int ViewerBasic::doCapture(cv::Mat &out)
             shapes.push_back(pose_model(cimg, faces[i]));
             
             cv::Rect boundingBox = cv::Rect2f(faces.at(i).left(), faces.at(i).top(), faces.at(i).width(),  faces.at(i).height());
-            cv::rectangle(cam.getCVMatCam(), boundingBox, cv::Scalar(255,0,0), 2);
+            cv::rectangle(win.getCVMatCam(), boundingBox, cv::Scalar(255,0,0), 2);
         }
 
         getPose(shapes, currentPose, 5);
         for(unsigned int i=0 ; i < currentPose.size() ; i++){
             cv::Point2i keyPoint = cv::Point2i(currentPose.at(i).x,currentPose.at(i).y );
-            drawMarker(cam.getCVMatCam(), keyPoint, cv::Scalar(0,0,255), 0, 11, 1);  
+            drawMarker(win.getCVMatCam(), keyPoint, cv::Scalar(0,0,255), 0, 11, 1);  
         }
 
         if(faceDetected){
@@ -551,7 +543,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
             currentPose.clear();
         }
         // Display it all on the screen
-        cam.displayWin(cimg, shapes);
+        win.displayWin(cimg, shapes);
 
         // Display debug messages on screen for poses
         for(unsigned int i=0 ; i < MAX_POSES ; ++i){
@@ -571,17 +563,19 @@ int ViewerBasic::doCapture(cv::Mat &out)
 double ViewerBasic::compute_weight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression){
     double sum_w, sum_dist = 0;
     double weight = 0;
+    double prec = 0;
     for (unsigned int i = 0; i < 68; i++){
 
         double x_offset = currentPose.at(27).x - expression.at(27).x;
         double y_offset = currentPose.at(27).y - expression.at(27).y;
 
         double dist = distance(cv::Point2d(currentPose.at(i).x, currentPose.at(i).y),
-                                cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset));
+                               cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset));
 
         // smooth
-        dist = pow(dist, 0.19);
-
+        
+        dist = pow(dist, .20);
+    
         sum_dist += dist;
         if (dist == 0.0) dist = 0.01;
             
@@ -592,7 +586,7 @@ double ViewerBasic::compute_weight(std::vector<cv::Point2f> currentPose, std::ve
         if (weight < 0.1) weight = 0.01;
 
         // std::cout << "Sum of distances | Sum of Weights | Weight value : " << sum_dist << " | " << sum_w << " | " << val << "\n";
-        drawMarker(cam.getCVMatCam(), cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset) , cv::Scalar(255, 255, 0), 0, 10);
+        drawMarker(win.getCVMatCam(), cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset) , cv::Scalar(255, 255, 0), 0, 10);
         sum_w = 0;
         sum_dist = 0;
     }
@@ -609,25 +603,25 @@ void ViewerBasic::print_pose_debug(unsigned int id){
     // Afficge à l'écran un message de debug pour la capture des poses.
     dlib::rgb_pixel WHITE(255,255,255);
     dlib::rgb_pixel GREEN(0,255,0);
-    cam.dlibDrawText(dlib::point(10,10), WHITE, "projetkf - demo lifprojet");
+    win.dlibDrawText(dlib::point(10,10), WHITE, "projetkf - demo lifprojet");
     switch(id) {
             case 0:
-                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : neutral_pose");
+                win.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : neutral_pose");
             break;
 
             case 1:
-                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_open pose");
+                win.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_open pose");
             break;
 
             case 2:
-                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_left pose");
+                win.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_left pose");
             break;
             case 3:
-                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_right pose");
+                win.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : jaw_right pose");
             break;
             
             case 4:
-                cam.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : eyebrows_up pose");
+                win.dlibDrawText(dlib::point(10,35 + id*15),GREEN, "SAVED : eyebrows_up pose");
             break;
                 
     }
@@ -655,11 +649,11 @@ void ViewerBasic::getPose(std::vector<dlib::full_object_detection> shapes, std::
 //! Blendshapes functions
 ////////////////////////////
 
-void ViewerBasic::init_BSShader(){
+void ViewerBasic::init_blendshapes(){
     // //! https://perso.univ-lyon1.fr/jean-claude.iehl/Public/educ/M1IMAGE/html/group__tuto__mesh__buffer.html
-    program = 0;
-    program = read_program("../data/shaders/blendshape.glsl");
-    program_print_errors(program);
+    program_blendshape = 0;
+    program_blendshape = read_program("../data/shaders/blendshape.glsl");
+    program_print_errors(program_blendshape);
 
     //! chargement des differentes poses
     m_neutral = read_mesh("../data/blendshapes/Neutral.obj");
@@ -678,7 +672,7 @@ void ViewerBasic::init_BSShader(){
     tabMesh.push_back(m_jawLeft);
     tabMesh.push_back(m_jawRight);
     tabMesh.push_back(m_eyeBrowsRaised);
-
+    
     // cree un VAO qui va contenir la position des sommet de nos mesh 
     mesh_buffer.create(tabMesh);
     m_neutral.release(); 
@@ -686,53 +680,93 @@ void ViewerBasic::init_BSShader(){
     m_jawLeft.release();
     m_jawRight.release();
     m_eyeBrowsRaised.release();
-
-    
+ 
 }
 
 void ViewerBasic::draw_blendshapes(){
     //pour l'instant, les obj n'ont pas de vertex normal/color/texcoord 
-
-    glUseProgram(program);
+    glUseProgram(program_blendshape);
     
-
-    Transform model = Identity() * Translation(0,0,0) * Scale(50,50,50);
+    Transform model = Identity() * Scale(50,50,50);
     
-    Transform view = m_camera.view();
+    Transform view = m_camera.view() ;
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
 
-    Transform mv = m_camera.view() * model * transformModel * rotationModel;
+    Transform mv = view * model * transformModel * rotationModel;
     mvp = projection * mv;
 
-    program_uniform(program, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
-    program_uniform(program, "mvpMatrix", mvp);
-    program_uniform(program, "mvMatrix", mv);
+    program_uniform(program_blendshape, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
+    program_uniform(program_blendshape, "mvpMatrix", mvp);
+    program_uniform(program_blendshape, "mvMatrix", mv);
     
-    program_uniform(program, "mesh_color", m_neutral.default_color());
-    program_uniform(program, "color", White());
+    program_uniform(program_blendshape, "mesh_color", m_neutral.default_color());
+    program_uniform(program_blendshape, "light", view(gl.light()));
+    program_uniform(program_blendshape, "light_color", White());
 
-    program_uniform(program, "light", view(gl.light()));
-    program_uniform(program, "light_color", White());
-    
+    program_uniform(program_blendshape, "w_jawOpen", w_jawOpen);
+    program_uniform(program_blendshape, "w_jawLeft", w_jawLeft);
+    program_uniform(program_blendshape, "w_jawRight", w_jawRight);
+    program_uniform(program_blendshape, "w_eyeBrowsRaised", w_eyeBrowsRaised);
 
-    //weights
+    //! CUBEMAP
+    program_uniform(program_blendshape, "cameraPos", m_camera.position());
 
-    
-    program_uniform(program, "w_jawOpen", w_jawOpen);
-    program_uniform(program, "w_jawLeft", w_jawLeft);
-    program_uniform(program, "w_jawRight", w_jawRight);
-    program_uniform(program, "w_eyeBrowsRaised", w_eyeBrowsRaised);
-
-    // On selection notre VAO pour le vertex shader
     glBindVertexArray(mesh_buffer.vao);
-    glBindTexture(GL_TEXTURE_2D, m_tex_debug);
-    
-    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, m_env_map);
     glDrawArrays(GL_TRIANGLES, 0, mesh_buffer.vertex_count);
+    glBindVertexArray(0);
     
-
-    
-  
 }
+
+void ViewerBasic::removeTranslationInMat44(float mat[4][4] ) {
+    for (int i = 0; i < 3; i++)
+    {
+        mat[i][3] = 1.0;
+    }
+}
+
+void ViewerBasic::draw_skybox(const Transform& T)
+{   
+    
+    glDepthMask(GL_FALSE);
+    
+	glUseProgram(program_cubemap);
+
+    // VIEW
+    //Transform remove_translation = Transform( Vector(0.,0.,0.), Vector(0.,0.,0.), Vector(0.,0.,0.), -1.0*m_camera.view()[3] );
+
+    Transform model = Identity()  * T;
+    Transform view = m_camera.view();
+    
+    // On fixe la translation dans la matrice de vue
+    // La camera ne s'approchera/s'éloignera jamais
+    // => Donne l'impression que la skybox est très grande
+    removeTranslationInMat44(view.m);
+
+    Transform projection = m_camera.projection(window_width(), window_height(), 45);
+    Transform mv = view * model; //* transformModel * rotationModel;
+    Transform mvp = projection * mv;
+
+
+    //std::cout << mvp << std::endl;
+
+    program_uniform(program_cubemap, "mvpMatrix", mvp);
+    program_uniform(program_cubemap, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
+
+    program_uniform(program_cubemap, "mvMatrix", mv);
+
+    program_uniform(program_cubemap, "light", view(gl.light()));
+    program_uniform(program_cubemap, "light_color", White());
+
+    glBindVertexArray(cubemap_buffer.vao);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP_SEAMLESS, m_env_map);
+    glDrawArrays(GL_TRIANGLES, 0, cubemap_buffer.vertex_count);
+    glBindVertexArray(0);
+
+    glDepthMask(GL_TRUE);
+}
+
 
 

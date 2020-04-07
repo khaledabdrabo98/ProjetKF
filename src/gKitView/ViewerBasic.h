@@ -52,7 +52,7 @@ struct Buffers
     {
             size_t id = 0;
             size_t offset = 0;
-
+            size_t size = 0;
             // cree et configure un vertex array object: conserve la description des attributs de sommets
             glGenVertexArrays(1, &vao);
             glBindVertexArray(vao);
@@ -69,7 +69,7 @@ struct Buffers
                 glBindBuffer(GL_ARRAY_BUFFER, tab_vertex_buffer[i]);
 
                 // taille totale du buffer
-                size_t size = mesh.vertex_buffer_size();
+                size = mesh.vertex_buffer_size();
                 glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
 
                 // transfere les positions des sommets
@@ -80,40 +80,48 @@ struct Buffers
                 glEnableVertexAttribArray(id);
 
                 std::cout << "id : " << id << "\n";
-                vertex_count = mesh.vertex_count();
+                vertex_count += mesh.vertex_count();
             }
-
+                
                 // ajout des normales
-                id += 1;
-                glGenBuffers(1, &vertex_normals_buffer);
-                glBindBuffer(GL_ARRAY_BUFFER, vertex_normals_buffer);
+                if (tabMeshes.at(0).normal_buffer_size()){
+                    id += 1;
+                    glGenBuffers(1, &vertex_normals_buffer);
+                    glBindBuffer(GL_ARRAY_BUFFER, vertex_normals_buffer);
 
-                // taille totale du buffer
-                size_t size = tabMeshes.at(0).normal_buffer_size();
+                    // taille totale du buffer
+                    size = tabMeshes.at(0).normal_buffer_size();
+
+                    glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
+
+                    glBufferSubData(GL_ARRAY_BUFFER, offset, size, tabMeshes.at(0).normal_buffer());
+
+                    glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
+                    glEnableVertexAttribArray(id);
+                    std::cout << "id : " << id << "\n";
+                }
                 
-                glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
                 
-                glBufferSubData(GL_ARRAY_BUFFER, offset, size, tabMeshes.at(0).normal_buffer());
+                if (!tabMeshes.at(0).texcoord_buffer_size()){
 
-                glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
-                glEnableVertexAttribArray(id);
-                std::cout << "id : " << id << "\n";
+                    // ajout des texcoords
+                    id += 1;
+                    glGenBuffers(1, &texcoords_buffer);
+                    glBindBuffer(GL_ARRAY_BUFFER, texcoords_buffer);
+
+                    // taille totale du buffer
+                    size = tabMeshes.at(0).texcoord_buffer_size();
+                    glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
+
+                    glBufferSubData(GL_ARRAY_BUFFER, offset, size, tabMeshes.at(0).texcoord_buffer());
+
+                    glVertexAttribPointer(id, 2, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
+                    glEnableVertexAttribArray(id);
+
+                    std::cout << "id : " << id << "\n";
+                }
                 
-                // ajout des texcoords
-                id += 1;
-                glGenBuffers(1, &texcoords_buffer);
-                glBindBuffer(GL_ARRAY_BUFFER, texcoords_buffer);
 
-                // taille totale du buffer
-                size = tabMeshes.at(0).texcoord_buffer_size();
-                glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
-                
-                glBufferSubData(GL_ARRAY_BUFFER, offset, size, tabMeshes.at(0).texcoord_buffer());
-
-                glVertexAttribPointer(id, 2, GL_FLOAT, GL_FALSE, /* stride */ 0, (const GLvoid *)offset);
-                glEnableVertexAttribArray(id);
-
-                std::cout << "id : " << id << "\n";
 
 
     }
@@ -142,7 +150,7 @@ public:
 
 protected:
     
-    CameraWin cam;
+    CameraWin win;
 
     Orbiter m_camera;
     DrawParam gl,gl1;
@@ -152,7 +160,7 @@ protected:
     Mesh m_axe;
     Mesh m_grid;
     Mesh m_cube;
-    Mesh m_cubemap;
+    Mesh m_skybox;
     std::vector<Mesh> blendshapes;
 
     GLuint m_tex_debug;
@@ -162,8 +170,8 @@ protected:
     void init_axe();
     void init_grid();
     void init_cube();
+    void init_skybox();
 
-    Mesh init_OBJ(const char *filename);
 
     Mesh m_quad;
     void init_quad();
@@ -180,9 +188,11 @@ protected:
     GLuint texID;
     GLuint fboID;
 
-    GLuint m_env_map;
-    void init_cubemap();
-    void draw_cubemap(const Transform& T);
+    GLuint m_env_map, m_tex_skybox;
+    void init_tex_cubemap();
+    void draw_skybox(const Transform& T);
+    void removeTranslationInMat44(float mat[4][4]);
+    
 
     int doCapture(cv::Mat &out);
 
@@ -202,8 +212,10 @@ protected:
 
 
     //! Draw des models 3D avec un shader custom
-    GLuint program;
-    void init_BSShader();
+    GLuint program_blendshape;
+    void init_blendshapes();
+
+    GLuint program_cubemap;
 
     Transform mvp;
     cv::Mat camMatrix;
@@ -242,9 +254,9 @@ protected:
     
     Mesh m_neutral,m_jawOpen,m_jawRight,m_jawLeft, m_eyeBrowsRaised;
     // Vertex Array Object 
-    Buffers mesh_buffer;
+    Buffers mesh_buffer, cubemap_buffer, cube_vao;
     
-    
+    int id_cubemap;
 };
 
 #endif
