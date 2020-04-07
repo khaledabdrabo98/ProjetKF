@@ -233,6 +233,13 @@ protected:
     Transform rotationModel;
     void computePnP();
 
+    //! STABILISATION
+    unsigned int pnp_currentPose;
+    unsigned int iteration_doCapture;
+    std::vector<cv::Point2f> currentPose_stabilizer0;
+    std::vector<cv::Point2f> currentPose_stabilizer1;
+    std::vector<cv::Point2f> currentPose_stabilizer2;
+
     //! POSES
     //stocke l'état d'une pose (capturée ou non)
     bool pose_taken[5] = {false};

@@ -82,6 +82,9 @@ int ViewerBasic::init()
 
     m_tex_debug = read_texture(3, "../data/debug2x2red.png");
     
+    pnp_currentPose = 0;
+    iteration_doCapture = 0;
+
     // OpenCV & dLib
     loadFaceDetectionModels();
 
@@ -401,12 +404,12 @@ void ViewerBasic::computePnP(){
     //need to make sure that there is at least 1 face present to use the PnP function
     if(faceDetected){
 
-        image_points.push_back( currentPose[33] );    // Nose tip
-        image_points.push_back( currentPose[8]  );    // Chin
-        image_points.push_back( currentPose[45] );    // Left eye left corner
-        image_points.push_back( currentPose[36] );    // Right eye right corner
-        image_points.push_back( currentPose[54] );    // Left Mouth corner
-        image_points.push_back( currentPose[48] );    // Right mouth corner
+        image_points.push_back((currentPose_stabilizer0[33] + currentPose_stabilizer1[33] + currentPose_stabilizer2[33])/3);    // Nose tip
+        image_points.push_back((currentPose_stabilizer0[8]  + currentPose_stabilizer1[8]  + currentPose_stabilizer2[8])/3 );    // Chin
+        image_points.push_back((currentPose_stabilizer0[45] + currentPose_stabilizer1[45] + currentPose_stabilizer2[45])/3);    // Left eye left corner
+        image_points.push_back((currentPose_stabilizer0[36] + currentPose_stabilizer1[36] + currentPose_stabilizer2[36])/3);    // Right eye right corner
+        image_points.push_back((currentPose_stabilizer0[54] + currentPose_stabilizer1[54] + currentPose_stabilizer2[54])/3);    // Left Mouth corner
+        image_points.push_back((currentPose_stabilizer0[48] + currentPose_stabilizer1[48] + currentPose_stabilizer2[48])/3);    // Right mouth corner
         
         // PnP functions
         // Camera internals
@@ -442,7 +445,7 @@ void ViewerBasic::computePnP(){
         
         transformModel = Translation(translation_vector.at<double>(0)/1000.0 , -translation_vector.at<double>(1)/1000.0 , translation_vector.at<double>(2)/1000.0); 
              
-        // rotationModel = RotationX(rotation_vector.at<double>(0)*180.0/M_PI) * RotationY(rotation_vector.at<double>(1)*180.0/M_PI) * RotationZ(rotation_vector.at<double>(2)*180.0/M_PI);
+        rotationModel = RotationX(rotation_vector.at<double>(0)*180.0/M_PI) * RotationY(rotation_vector.at<double>(1)*180.0/M_PI) * RotationZ(rotation_vector.at<double>(2)*180.0/M_PI);
     }
 
     image_points.clear();
@@ -537,7 +540,28 @@ int ViewerBasic::doCapture(cv::Mat &out)
 
         if(faceDetected){
             inputWeights(shapes);
-            // computePnP();
+            
+            if(iteration_doCapture == 0){
+                currentPose_stabilizer0 = currentPose;
+                currentPose_stabilizer1 = currentPose;
+                currentPose_stabilizer2 = currentPose;
+            }
+            iteration_doCapture++;
+            switch (pnp_currentPose){
+                case 0:
+                    currentPose_stabilizer0 = currentPose;
+                    pnp_currentPose++;
+                    break;
+                case 1:
+                    currentPose_stabilizer1 = currentPose;
+                    pnp_currentPose++;
+                    break;
+                case 2:
+                    currentPose_stabilizer2 = currentPose;
+                    pnp_currentPose = 0;
+                    break;
+            }
+            computePnP();
 
             faceKeyPoints.clear();
             currentPose.clear();
