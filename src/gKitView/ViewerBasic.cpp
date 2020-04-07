@@ -80,7 +80,7 @@ int ViewerBasic::init()
     init_skybox();
     init_tex_cubemap();
 
-    m_tex_debug = read_texture(3, "../../data/debug2x2red.png");
+    m_tex_debug = read_texture(3, "../data/debug2x2red.png");
     
     // OpenCV & dLib
     loadFaceDetectionModels();
@@ -167,7 +167,7 @@ void ViewerBasic::init_cube()
 
 void ViewerBasic::init_skybox(){
 
-    m_skybox = read_mesh("../../data/cube.obj");//Mesh(GL_TRIANGLES);
+    m_skybox = read_mesh("../data/cube.obj");//Mesh(GL_TRIANGLES);
     m_skybox.color( Color(1, 1, 1) );
 
     //VAO
@@ -185,19 +185,19 @@ void ViewerBasic::init_tex_cubemap()
     
     std::vector<std::string> faces = 
     {
-        "../../data/cubemap/0"+id+"/x_pos.jpg",
-        "../../data/cubemap/0"+id+"/x_neg.jpg",
-        "../../data/cubemap/0"+id+"/y_pos.jpg",
-        "../../data/cubemap/0"+id+"/y_neg.jpg",
-        "../../data/cubemap/0"+id+"/z_neg.jpg",
-        "../../data/cubemap/0"+id+"/z_pos.jpg"
+        "../data/cubemap/0"+id+"/x_pos.jpg",
+        "../data/cubemap/0"+id+"/x_neg.jpg",
+        "../data/cubemap/0"+id+"/y_pos.jpg",
+        "../data/cubemap/0"+id+"/y_neg.jpg",
+        "../data/cubemap/0"+id+"/z_neg.jpg",
+        "../data/cubemap/0"+id+"/z_pos.jpg"
     };
     
     // cubemap split in 6 faces 
     m_env_map = make_texture_cubemap(faces) ;
     
     
-    program_cubemap = read_program("../../data/shaders/cubemap.glsl");
+    program_cubemap = read_program("../data/shaders/cubemap.glsl");
     program_print_errors(program_cubemap);
 
 
@@ -652,15 +652,15 @@ void ViewerBasic::getPose(std::vector<dlib::full_object_detection> shapes, std::
 void ViewerBasic::init_blendshapes(){
     // //! https://perso.univ-lyon1.fr/jean-claude.iehl/Public/educ/M1IMAGE/html/group__tuto__mesh__buffer.html
     program_blendshape = 0;
-    program_blendshape = read_program("../../data/shaders/blendshape.glsl");
+    program_blendshape = read_program("../data/shaders/blendshape.glsl");
     program_print_errors(program_blendshape);
 
     //! chargement des differentes poses
-    m_neutral = read_mesh("../../data/blendshapes/Neutral.obj");
-    m_jawOpen = read_mesh("../../data/blendshapes/jawOpen.obj");
-    m_jawLeft = read_mesh("../../data/blendshapes/mouthSmileLeft.obj");
-    m_jawRight = read_mesh("../../data/blendshapes/mouthSmileRight.obj");
-    m_eyeBrowsRaised = read_mesh("../../data/blendshapes/browInnerUp.obj");
+    m_neutral = read_mesh("../data/blendshapes/Neutral.obj");
+    m_jawOpen = read_mesh("../data/blendshapes/jawOpen.obj");
+    m_jawLeft = read_mesh("../data/blendshapes/mouthSmileLeft.obj");
+    m_jawRight = read_mesh("../data/blendshapes/mouthSmileRight.obj");
+    m_eyeBrowsRaised = read_mesh("../data/blendshapes/browInnerUp.obj");
 
 
     if(m_neutral.normal_buffer_size() == 0)
