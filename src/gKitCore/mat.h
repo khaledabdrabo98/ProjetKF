@@ -93,6 +93,9 @@ Transform Lookat( const Point& from, const Point& to, const Vector& up );
 Transform compose_transform( const Transform& a, const Transform& b );
 //! renvoie la composition des transformations a et b, t = a * b.
 Transform operator* ( const Transform& a, const Transform& b );
+//! renvoie m = a + b
+Transform operator+ ( const Transform& a, const Transform& b );
+
 
 #include <iostream>
 

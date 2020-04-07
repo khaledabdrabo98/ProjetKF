@@ -281,6 +281,12 @@ Transform operator* ( const Transform& a, const Transform& b )
     return compose_transform(a, b);
 }
 
+Transform operator+ ( const Transform& a, const Transform& b )
+{
+    Transform res = Transform(a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3] );
+    return res;
+}
+
 Transform Transform::inverse( ) const
 {
     Transform minv= *this;
