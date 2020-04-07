@@ -8,6 +8,7 @@
 
 // #define USE_TEXCOORD
 #define USE_COLOR
+#define USE_CUBEMAP
 
 
 #ifdef VERTEX_SHADER
@@ -18,12 +19,12 @@
     out vec3 vertex_position;
 
     #ifdef USE_TEXCOORD
-        layout(location= 1) in vec2 texcoord;
+        layout(location= 6) in vec2 texcoord;
         out vec2 vertex_texcoord;
     #endif
 
     #ifdef USE_NORMAL
-        layout(location= 1) in vec3 normal;
+        layout(location= 5) in vec3 normal;
         uniform mat4 normalMatrix;
         out vec3 vertex_normal;
     #endif
@@ -33,33 +34,34 @@
         out vec4 vertex_color;
     #endif
 
-    //\\//\\//\\//\\//\\//\\//\\//\\ Partie Blenshape
+//---------------------------------------------Partie Blenshape//
     layout(location= 0) in vec3 p_neutral;
     layout(location= 1) in vec3 p_jawOpen;
     layout(location= 2) in vec3 p_jawLeft;
     layout(location= 3) in vec3 p_jawRight;
     layout(location= 4) in vec3 p_eyeBrowsRaised;
-
-    in vec3 neutral_vp;
-    in vec3 happy_vp;
-    uniform vec3 angry_vp;
-
-    uniform float w1;
     
+
     uniform float w_neutral;
     uniform float w_jawOpen;
     uniform float w_jawLeft;
     uniform float w_jawRight;
     uniform float w_eyeBrowsRaised;
-    //\\//\\////\\//\\////\\//\\////\\//\\////\\//\\//
+//-------------------------------------------------------------//
+
+#ifdef USE_CUBEMAP
+    layout (location = 0) in vec3 skybox_pos;
+    out vec3 skybox_texcoords;
+#endif
+
+
+//-------------------------------------------------------------//
 
 
     void main()
     {
 
-        //! Partie Blenshape
-
-        // get a sum of weights and work out factors for each target
+//------ Calcul des poids Partie Blenshape
         float sum_w = w_neutral + w_jawOpen + w_jawLeft + w_jawRight + w_eyeBrowsRaised;
         float f_neutral = w_neutral /sum_w;
         float f_jawOpen = w_jawOpen / sum_w;
@@ -69,12 +71,8 @@
     
 
         vec3 pos = (f_neutral * p_neutral) + (f_jawOpen * p_jawOpen) + (f_jawLeft * p_jawLeft) + (f_jawRight * p_jawRight) + (f_eyeBrowsRaised * p_eyeBrowsRaised) ;
-        
-
-        //\\//\\////\\//\\////\\//\\////\\//\\////\\//\\//
-
-
-        gl_Position= mvpMatrix * vec4(pos, 1);
+       
+        gl_Position= mvpMatrix * vec4(pos , 1.0);;
         
         vertex_position = vec3(mvMatrix * vec4(pos, 1));
 
@@ -83,11 +81,17 @@
         #endif
 
         #ifdef USE_NORMAL
-            vertex_normal= mat3(normalMatrix) * normal;
+            // vertex_normal= mat3(normalMatrix) * normal;
+             vertex_normal= mat3(transpose(inverse(normalMatrix))) * normal;
         #endif
 
         #ifdef USE_COLOR
-            vertex_color= color;//vec4(normalize(normal), 1.0);
+            vertex_color= vec4(1,1,1,1);//vec4(normalize(normal), 1.0);
+        #endif
+
+        #ifdef USE_CUBEMAP
+            skybox_texcoords = skybox_pos;
+            
         #endif
     }
 
@@ -116,20 +120,28 @@ in vec3 vertex_position;
     in vec4 vertex_color;
 #endif
 
+#ifdef USE_CUBEMAP
+    uniform vec3 cameraPos; 
+
+#endif
+
 #ifdef USE_LIGHT
-uniform vec3 light;
-uniform vec4 light_color;
+    uniform vec3 light;
+    uniform vec4 light_color;
 #endif
 
 uniform vec4 mesh_color= vec4(1, 1, 1, 1);
 
 out vec4 fragment_color;
+in vec3 skybox_texcoords;
+uniform samplerCube skybox;
 
 void main( )
 {
     vec4 color= mesh_color;
 #ifdef USE_COLOR
     color= vertex_color;
+    
 #endif
 
 #ifdef USE_TEXCOORD
@@ -158,6 +170,14 @@ void main( )
     vec3 t= normalize(dFdx(vertex_position));
     vec3 b= normalize(dFdy(vertex_position));
     normal= normalize(cross(t, b));
+#endif
+
+#ifdef USE_CUBEMAP
+    vec3 I = normalize(vertex_position - cameraPos); //vecteur incident
+    vec3 R = reflect(I, normalize(vertex_normal)); //reflection
+
+    color = color * vec4(texture(skybox, R).rgb, 1.0);
+    
 #endif
 
 #ifndef USE_ALPHATEST
