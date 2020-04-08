@@ -443,7 +443,7 @@ void ViewerBasic::computePnP(){
         
         cv::line(win.getCVMatCam(),image_points[0], nose_end_point2D[0], cv::Scalar(255,0,0), 2);
         
-        transformModel = Translation(translation_vector.at<double>(0)/1000.0 , -translation_vector.at<double>(1)/1000.0 , translation_vector.at<double>(2)/1000.0); 
+        transformModel = Translation(translation_vector.at<double>(0)/1000.0 , translation_vector.at<double>(1)/1000.0 , translation_vector.at<double>(2)/1000.0); 
              
         rotationModel = RotationX(rotation_vector.at<double>(0)*180.0/M_PI) * RotationY(rotation_vector.at<double>(1)*180.0/M_PI) * RotationZ(rotation_vector.at<double>(2)*180.0/M_PI);
     }
@@ -711,7 +711,7 @@ void ViewerBasic::draw_blendshapes(){
     //pour l'instant, les obj n'ont pas de vertex normal/color/texcoord 
     glUseProgram(program_blendshape);
     
-    Transform model = Identity() * Scale(50,50,50);
+    Transform model = Identity() * Scale(80,80,80);
     
     Transform view = m_camera.view() ;
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
