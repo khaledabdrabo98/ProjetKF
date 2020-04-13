@@ -677,7 +677,7 @@ void ViewerBasic::draw_blendshapes(){
     
     Transform view = m_camera.view() ;
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
-
+    program_uniform(program_blendshape, "third", gui.cubemap_id == 3);
     if (gui.translationEnabled)
     {
         Transform mv = view * model * transformModel * rotationModel;
