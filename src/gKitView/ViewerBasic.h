@@ -34,6 +34,11 @@
 #include <dlib/gui_widgets.h>
 
 
+#include "imgui.h"
+#include "imgui_impl_sdl.h"
+#include "imgui_impl_opengl3.h"
+
+
 //TODO : modifier la fonction create de Buffer pour initialiser d'un seul coup un tableau de mesh 
 
 struct Buffers
@@ -223,7 +228,7 @@ protected:
     
     //! PNP
     // Pour le calcul de la rotation et translation du visage
-    std::vector<cv::Point2d> image_points;
+    std::vector<cv::Point2f> image_points;
     std::vector<cv::Point3d> model_points;
     // Rotation in axis-angle form
     cv::Mat rotation_vector; 
