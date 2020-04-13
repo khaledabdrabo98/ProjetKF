@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define SCREEN_W 700
+#define SCREEN_W 1366
 #define SCREEN_H 768
 
 #define MAX_POSES 5
@@ -352,29 +352,13 @@ void ViewerBasic::manageCameraLight()
     gl.texture( 0 );
     gl.lighting(false);
 	gl.model(Translation(Vector(gl.light()))*Scale(step, step, step));
-    gl.draw(m_cube);
+    gl.draw(m_quad);
     gl.lighting(true);
 }
 
 /////////////////////////////
 //! openCV & dlib
 ///////////////////////////// 
-
-/*int ViewerBasic::initCvCapture(){
-    cap = cv::VideoCapture(-1); 
-    
-    faceDetected = false;
-    cap.set(10, .5); 
-    
-    cap.set(4, 512);
-    cap.set(3, 512);
-    if(!cap.isOpened()){
-        cerr << "Unable to connect to camera" << endl;
-        return 1;
-    }
-    
-    return 0;
-}*/
 
 void ViewerBasic::loadFaceDetectionModels(){
     // Load face detection and pose estimation models.
@@ -452,10 +436,8 @@ void ViewerBasic::computePnP(){
     image_points.clear();
 }
 
-void ViewerBasic::inputWeights(std::vector<dlib::full_object_detection> tab_shapes){
+void ViewerBasic::savePoseForCalibration(std::vector<dlib::full_object_detection> tab_shapes){
     // Capture des expression
-
-
 
     if(gui.expr[0]){
         std::cout << "[saving neutral pose...]\n";
@@ -514,42 +496,45 @@ int ViewerBasic::doCapture(cv::Mat &out)
     // Lance la capture webcam et stocke le résultat dans une matrice openCV (cv::Mat)
     try
     {
+        int framecount = 0;
         // Grab a frame
-        if (!win.getCap().read(win.getCVMatCam())){
+        if (!win.getCap().read(out)){
             return -1;
         }
+
         
-        dlib::cv_image<dlib::bgr_pixel> cimg(win.getCVMatCam());
+        cv::resize(out, out, cv::Size(), 1.0/gui.downsample_ratio, 
+                                         1.0/gui.downsample_ratio);
+        
+        dlib::cv_image<dlib::bgr_pixel> cimg(out);
         
         // Detect faces
+        if(framecount % 2 == 0) {
+            
+        }
         std::vector<dlib::rectangle> faces = detector(cimg);
         std::vector<dlib::full_object_detection> shapes;
         
         // Find the pose of each face.
         faceDetected = faces.size() > 0;
 
-        for (unsigned long i = 0; i < faces.size(); ++i){
-            shapes.push_back(pose_model(cimg, faces[i]));
-            
-            cv::Rect boundingBox = cv::Rect2f(faces.at(i).left(), faces.at(i).top(), faces.at(i).width(),  faces.at(i).height());
-            cv::rectangle(win.getCVMatCam(), boundingBox, cv::Scalar(255,0,0), 2);
-        }
-
-        getPose(shapes, currentPose, 5);
-        for(unsigned int i=0 ; i < currentPose.size() ; i++){
-            cv::Point2i keyPoint = cv::Point2i(currentPose.at(i).x,currentPose.at(i).y );
-            drawMarker(win.getCVMatCam(), keyPoint, cv::Scalar(0,0,255), 0, 11, 1);  
-        }
-
         if(faceDetected){
-            inputWeights(shapes);
-            computePnP();
 
-            faceKeyPoints.clear();
+            shapes.push_back(pose_model(cimg, faces[0]));
+            getPose(shapes, currentPose, 5);
+            cv::Rect boundingBox = cv::Rect2f(faces[0].left(), faces[0].top(), faces[0].width(), faces[0].height());
+            cv::rectangle(out, boundingBox, cv::Scalar(255, 0, 0), 2);
+
+            savePoseForCalibration(shapes);
+            if (gui.translationEnabled)
+                computePnP();
+
+            // Display it all on the screen
+            win.displayWin(cimg, shapes);
+
             currentPose.clear();
         }
-        // Display it all on the screen
-        win.displayWin(cimg, shapes);
+
 
         // Display debug messages on screen for poses
         for(unsigned int i=0 ; i < MAX_POSES ; ++i){
@@ -583,7 +568,7 @@ double ViewerBasic::compute_weight(std::vector<cv::Point2f> currentPose, std::ve
 
         if (dist == 0.0) dist = 0.01;
             
-        weight = 1 / pow(dist, 1.2);
+        weight = 1 / pow(dist, gui.pow_interp);
 
         // if (weight > 1.0) weight = 1.0;
         // if (weight < 0.1) weight = 0.01;
@@ -675,7 +660,7 @@ void ViewerBasic::init_blendshapes(){
     tabMesh.push_back(m_eyeBrowsRaised);
     
     // cree un VAO qui va contenir la position des sommet de nos mesh 
-    mesh_buffer.create(tabMesh);
+    bs_buffer.create(tabMesh);
     m_neutral.release(); 
     m_jawOpen.release();
     m_jawLeft.release();
@@ -688,7 +673,7 @@ void ViewerBasic::draw_blendshapes(){
     //pour l'instant, les obj n'ont pas de vertex normal/color/texcoord 
     glUseProgram(program_blendshape);
     
-    Transform model = Identity() * Translation(gui.translation[0], gui.translation[1],gui.translation[2] ) * Scale(50,50,50);
+    Transform model = Identity() * Translation(1.5 + gui.translation[0], gui.translation[1],gui.translation[2] ) * Scale(50,50,50);
     
     Transform view = m_camera.view() ;
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
@@ -698,7 +683,7 @@ void ViewerBasic::draw_blendshapes(){
         Transform mv = view * model * transformModel * rotationModel;
         mvp = projection * mv;
         program_uniform(program_blendshape, "mvMatrix", mv);
-    program_uniform(program_blendshape, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
+        program_uniform(program_blendshape, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
 
     }
     else
@@ -706,7 +691,7 @@ void ViewerBasic::draw_blendshapes(){
         Transform mv = view * model * rotationModel;
         mvp = projection * mv;
         program_uniform(program_blendshape, "mvMatrix", mv);
-    program_uniform(program_blendshape, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
+        program_uniform(program_blendshape, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
 
     }
 
@@ -726,10 +711,10 @@ void ViewerBasic::draw_blendshapes(){
     //! CUBEMAP
     program_uniform(program_blendshape, "cameraPos", m_camera.position());
 
-    glBindVertexArray(mesh_buffer.vao);
+    glBindVertexArray(bs_buffer.vao);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_env_map);
-    glDrawArrays(GL_TRIANGLES, 0, mesh_buffer.vertex_count);
+    glDrawArrays(GL_TRIANGLES, 0, bs_buffer.vertex_count);
     glBindVertexArray(0);
     
 }
