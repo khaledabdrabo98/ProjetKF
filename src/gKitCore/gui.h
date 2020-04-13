@@ -27,6 +27,8 @@ class Gui
         float translation[3] = {0.0, 0.0, 0.0}; 
 
         bool translationEnabled;
+        float pow_interp;
+        float downsample_ratio;
 
     protected:
         
