@@ -74,8 +74,6 @@ void Gui::draw()
         ButtonSetExpr("Jaw Right", 3);
         ButtonSetExpr("Eyebrows Up", 4);
 
-
-
         ImGui::NewLine();
         ImGui::NewLine();
 
