@@ -29,6 +29,7 @@ class Gui
         bool translationEnabled;
         float pow_interp;
         float downsample_ratio;
+        bool enable_cbp;
 
     protected:
         

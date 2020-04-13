@@ -6,6 +6,7 @@ Gui::Gui()
     translationEnabled = false;
     downsample_ratio = 1.0;
     pow_interp = 1.5;
+    enable_cbp = false;
      
 }
 
@@ -77,6 +78,8 @@ void Gui::draw()
         ImGui::NewLine();
         ImGui::NewLine();
 
+        
+        if (ImGui::Button("Enable/Disable Cubemap")) enable_cbp = !enable_cbp;
         // Cubemap selector
         if (ImGui::ArrowButton("##left", ImGuiDir_Left)) { cubemap_id = std::max(0, (int)cubemap_id-1); cubemapChanged=true; }
         ImGui::SameLine();
