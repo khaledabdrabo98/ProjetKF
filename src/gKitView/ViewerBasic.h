@@ -162,11 +162,9 @@ protected:
     bool mb_cullface;
     bool mb_wireframe;
 
-    Mesh m_axe;
-    Mesh m_grid;
-    Mesh m_cube;
-    Mesh m_skybox;
-    std::vector<Mesh> blendshapes;
+    Mesh m_axe, m_grid, m_cube, m_skybox, m_quad;
+
+    
 
     GLuint m_tex_debug;
 
@@ -176,62 +174,43 @@ protected:
     void init_grid();
     void init_cube();
     void init_skybox();
-
-
-    Mesh m_quad;
     void init_quad();
 
-    void draw(const Transform& T, Mesh &mesh);
 
+    void draw(const Transform& T, Mesh &mesh);
     void draw_axe(const Transform& T);
 	void draw_grid(const Transform& T);
 	void draw_cube(const Transform& T);
 	void draw_quad(const Transform& T, const GLuint &Tex);
-
     void manageCameraLight();
 
-    GLuint texID;
-    GLuint fboID;
+    // OpenGL
+    Buffers bs_buffer, cubemap_buffer;
 
-    GLuint m_env_map, m_tex_skybox;
+    // Cubemap
+    GLuint m_env_map;
+    GLuint program_cubemap;
     void init_tex_cubemap();
     void draw_skybox(const Transform& T);
-    void removeTranslationInMat44(float mat[4][4]);
     
-
-    int doCapture(cv::Mat &out);
-
-    float w_neutral, w_jawOpen, w_jawLeft, w_jawRight, w_eyeBrowsRaised;
     
-    //! dLib
-    void loadFaceDetectionModels();
-    std::vector<cv::Point2f> faceKeyPoints;
     
-
-    bool faceDetected;
-    std::vector<vec2> neutral_FaceCoordinates;
-    std::vector<vec2> jawOpen_FaceCoordinates;
-    
+    // Dlib + OpenCV
     dlib::shape_predictor pose_model;
     dlib::frontal_face_detector detector;
+    void loadFaceDetectionModels();
+    int doCapture(cv::Mat &out);
+    bool faceDetected;
+    std::vector<cv::Point2f> faceKeyPoints;
 
 
-    //! Draw des models 3D avec un shader custom
-    GLuint program_blendshape;
-    void init_blendshapes();
 
-    GLuint program_cubemap;
-
-    Transform mvp;
-    cv::Mat camMatrix;
-    void draw_blendshapes();
-    
     //! PNP
     // Pour le calcul de la rotation et translation du visage
     std::vector<cv::Point2f> image_points;
     std::vector<cv::Point3d> model_points;
     // Rotation in axis-angle form
-    cv::Mat rotation_vector; 
+    cv::Mat rotation_vector;
     cv::Mat translation_vector;
     // variables qui appliquent la rotation et la translation sur le modele 3D
     Transform transformModel;
@@ -239,29 +218,34 @@ protected:
     void computePnP();
 
     //! POSES
+    //! Affichage des blendshapes avec un shader custom
+    void init_blendshapes();
+    GLuint program_blendshape;
+
+    Transform mvp;
+    cv::Mat camMatrix;
+    void draw_blendshapes();
     //stocke l'état d'une pose (capturée ou non)
     bool pose_taken[5] = {false};
     // coordonnées des 68 points dans chaque expression
-    std::vector<cv::Point2f> p_neutral;
-    std::vector<cv::Point2f> p_jawOpen;
-    std::vector<cv::Point2f> p_jawLeft;
-    std::vector<cv::Point2f> p_jawRight;
-    std::vector<cv::Point2f> p_eyeBrowsRaised;
+    std::vector<cv::Point2f> p_neutral,p_jawOpen,p_jawLeft,p_jawRight,p_eyeBrowsRaised;
+    Mesh m_neutral, m_jawOpen, m_jawRight, m_jawLeft, m_eyeBrowsRaised;
+    float w_neutral, w_jawOpen, w_jawLeft, w_jawRight, w_eyeBrowsRaised;
     std::vector<cv::Point2f> currentPose;
+    std::vector<Mesh> blendshapes;
+
+    
+    void getPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out, unsigned int id);
+    double compute_weight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression);
+    void savePoseForCalibration(std::vector<dlib::full_object_detection> tab_shapes);
+
+    //
+    void removeTranslationInMat44(float mat[4][4] );
+    double distance(cv::Point2f a, cv::Point2f b);
     void print_pose_debug(unsigned int id);
-    void getPose(std::vector<dlib::full_object_detection> shapes,  std::vector<cv::Point2f> &out, unsigned int id);
     
+
     
-    double distance(cv::Point2f a,cv::Point2f b );
-    
-    void inputWeights(std::vector<dlib::full_object_detection> tab_shapes);
-    double compute_weight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression );
-    
-    Mesh m_neutral,m_jawOpen,m_jawRight,m_jawLeft, m_eyeBrowsRaised;
-    // Vertex Array Object 
-    Buffers mesh_buffer, cubemap_buffer, cube_vao;
-    
-    int id_cubemap;
 };
 
 #endif
