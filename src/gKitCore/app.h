@@ -3,7 +3,7 @@
 #define _APP_H
 
 #include "window.h"
-
+#include "gui.h"
 
 //! \addtogroup application utilitaires pour creer une application
 
@@ -39,6 +39,7 @@ public:
 protected:
     Window m_window;
     Context m_context;
+    Gui gui;
 };
 
 

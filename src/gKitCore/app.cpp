@@ -8,11 +8,15 @@
 #include "glcore.h"
 
 
+
 App::App( const int width, const int height, const int major, const int minor )
     : m_window(nullptr), m_context(nullptr)
 {
     m_window= create_window(width, height);
     m_context= create_context(m_window, major, minor);
+
+    //init gui
+    gui.init(m_window, m_context);
 }
 
 App::~App( )
@@ -31,6 +35,8 @@ int App::run( )
     // configure openGL
     glViewport(0, 0, window_width(), window_height());
 
+
+
     // gestion des evenements
     while(events(m_window))
     {
@@ -43,11 +49,14 @@ int App::run( )
             continue;
         }
     #endif
-        
+       
+
         if(update(global_time(), delta_time()) < 0)
             break;
         if(render() < 1)
             break;
+
+        
 
         // presenter le resultat
         // force openGL a finir d'executer toutes les commandes, 
@@ -55,9 +64,14 @@ int App::run( )
         // devrait limiter la consommation sur portable
         glFinish();
         SDL_GL_SwapWindow(m_window);
+
+        
     }
+
 
     if(quit() < 0)
         return -1;
+
+
     return 0;
 }
