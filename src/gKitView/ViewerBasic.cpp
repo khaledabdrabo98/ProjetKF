@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define SCREEN_W 1024
+#define SCREEN_W 700
 #define SCREEN_H 768
 
 #define MAX_POSES 5
@@ -80,7 +80,7 @@ int ViewerBasic::init()
     init_skybox();
     init_tex_cubemap();
 
-    m_tex_debug = read_texture(3, "../../data/debug2x2red.png");
+    m_tex_debug = read_texture(3, "../data/debug2x2red.png");
     
     // OpenCV & dLib
     loadFaceDetectionModels();
@@ -89,13 +89,13 @@ int ViewerBasic::init()
     init_blendshapes();
 
     // 3D model points.
-    model_points.push_back(cv::Point3d(0.0f, 0.0f, 0.0f));            // Nose tip
-    model_points.push_back(cv::Point3d(0.0f, -33.0f, -6.5f));         // Chin
-    model_points.push_back(cv::Point3d(-22.5f, 17.0f, -13.5f));       // Left eye left corner
-    model_points.push_back(cv::Point3d(22.5f, 17.0f, -13.5f));        // Right eye right corner
-    model_points.push_back(cv::Point3d(-15.0f, -15.0f, -12.5f));      // Left Mouth corner
-    model_points.push_back(cv::Point3d(15.0f, -15.0f, -12.5f));       // Right mouth corner
-    
+    model_points.push_back(cv::Point3d(0.0f, 0.0f, 0.0f));       // Nose tip
+    model_points.push_back(cv::Point3d(0.0f, -33.0f, -6.5f));    // Chin
+    model_points.push_back(cv::Point3d(-22.5f, 17.0f, -13.5f));  // Left eye left corner
+    model_points.push_back(cv::Point3d(22.5f, 17.0f, -13.5f));   // Right eye right corner
+    model_points.push_back(cv::Point3d(-15.0f, -15.0f, -12.5f)); // Left Mouth corner
+    model_points.push_back(cv::Point3d(15.0f, -15.0f, -12.5f));  // Right mouth corner
+
     return 1;
 }
 
@@ -167,7 +167,7 @@ void ViewerBasic::init_cube()
 
 void ViewerBasic::init_skybox(){
 
-    m_skybox = read_mesh("../../data/cube.obj");//Mesh(GL_TRIANGLES);
+    m_skybox = read_mesh("../data/cube.obj");//Mesh(GL_TRIANGLES);
     m_skybox.color( Color(1, 1, 1) );
 
     //VAO
@@ -181,23 +181,23 @@ void ViewerBasic::init_tex_cubemap()
 {  
     // m_skybox = Mesh(GL_TRIANGLE_STRIP);
 
-    std::string id = to_string(win.cur_cubemap_id);
+    std::string id = to_string(gui.cubemap_id);
     
     std::vector<std::string> faces = 
     {
-        "../../data/cubemap/0"+id+"/x_pos.jpg",
-        "../../data/cubemap/0"+id+"/x_neg.jpg",
-        "../../data/cubemap/0"+id+"/y_pos.jpg",
-        "../../data/cubemap/0"+id+"/y_neg.jpg",
-        "../../data/cubemap/0"+id+"/z_neg.jpg",
-        "../../data/cubemap/0"+id+"/z_pos.jpg"
+        "../data/cubemap/0"+id+"/x_pos.jpg",
+        "../data/cubemap/0"+id+"/x_neg.jpg",
+        "../data/cubemap/0"+id+"/y_pos.jpg",
+        "../data/cubemap/0"+id+"/y_neg.jpg",
+        "../data/cubemap/0"+id+"/z_neg.jpg",
+        "../data/cubemap/0"+id+"/z_pos.jpg"
     };
     
     // cubemap split in 6 faces 
     m_env_map = make_texture_cubemap(faces) ;
     
     
-    program_cubemap = read_program("../../data/shaders/cubemap.glsl");
+    program_cubemap = read_program("../data/shaders/cubemap.glsl");
     program_print_errors(program_cubemap);
 
 
@@ -243,6 +243,10 @@ int ViewerBasic::render()
     draw_skybox(Scale(20,20,20));
 
     draw_blendshapes();
+
+    gui.draw();
+
+
 
     return 1;
 }
@@ -303,12 +307,12 @@ void ViewerBasic::manageCameraLight()
     int mx, my;
     unsigned int mb= SDL_GetRelativeMouseState(&mx, &my);
     // deplace la camera
-    if((mb & SDL_BUTTON(1)) &&  (mb& SDL_BUTTON(3)))                 // le bouton du milieu est enfonce
+    if((mb & SDL_BUTTON(1) ) &&  (mb& SDL_BUTTON(3)))                 // le bouton du milieu est enfonce
         m_camera.translation( (float) mx / (float) window_width(), 
                               (float) my / (float) window_height());         // deplace le point de rotation
-    else if(mb & SDL_BUTTON(1))                      // le bouton gauche est enfonce
+    else if(mb & SDL_BUTTON(1) && key_state(SDLK_LSHIFT))                      // le bouton gauche est enfonce
         m_camera.rotation( mx, my);       // tourne autour de l'objet
-    else if(mb & SDL_BUTTON(3))                 // le bouton droit est enfonce
+    else if(mb & SDL_BUTTON(3) )                 // le bouton droit est enfonce
         m_camera.move( my);               // approche / eloigne l'objet
 	if (key_state(SDLK_PAGEUP) && (!key_state(SDLK_LCTRL)) && (!key_state(SDLK_LALT))) { m_camera.translation(0, 0.01); }
 	if (key_state(SDLK_PAGEDOWN) && (!key_state(SDLK_LCTRL)) && (!key_state(SDLK_LALT))) { m_camera.translation(0, -0.01); }
@@ -450,46 +454,48 @@ void ViewerBasic::computePnP(){
 
 void ViewerBasic::inputWeights(std::vector<dlib::full_object_detection> tab_shapes){
     // Capture des expression
-    if(win.is_expression_active(0)){
+
+
+
+    if(gui.expr[0]){
         std::cout << "[saving neutral pose...]\n";
         getPose(tab_shapes, p_neutral, 0);
-        win.set_active_expression(0, false);
+        gui.expr[0] = false;
 
     }
 
-    if(win.is_expression_active(1)){
+    if(gui.expr[1]){
         std::cout << "[Saving pose : Jaw Open]\n";
         getPose(tab_shapes, p_jawOpen, 1);
-        win.set_active_expression(1, false);
+        gui.expr[1] = false;
         
     }
 
-    if(win.is_expression_active(2)){
+    if(gui.expr[2]){
         std::cout << "[Saving pose : Jaw Left]\n";
         getPose(tab_shapes, p_jawLeft, 2);
-        win.set_active_expression(2, false);
+        gui.expr[2] = false;
         
     }
 
-    if(win.is_expression_active(3)){
+    if(gui.expr[3]){
         std::cout << "[Saving  jaw right pose]\n";
         getPose(tab_shapes, p_jawRight, 3);
-        win.set_active_expression(3, false);
+        gui.expr[3] = false;
         
     }
 
-    if(win.is_expression_active(4)){
+    if(gui.expr[4]){
         std::cout << "[Saving eyebrows up]\n";
         getPose(tab_shapes, p_eyeBrowsRaised, 4);
-        win.set_active_expression(4, false);
+        gui.expr[4] = false;
         
     }
 
-    if(win.cubemapChanged){
+    if(gui.cubemapChanged){
         std::cout << "[Changing cubemap]\n";
-        id_cubemap = win.cur_cubemap_id;
         init_tex_cubemap();
-        win.cubemapChanged = false;
+        gui.cubemapChanged = false;
     }
 
     
@@ -537,7 +543,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
 
         if(faceDetected){
             inputWeights(shapes);
-            // computePnP();
+            computePnP();
 
             faceKeyPoints.clear();
             currentPose.clear();
@@ -560,10 +566,11 @@ int ViewerBasic::doCapture(cv::Mat &out)
     return 0;
 }
 
+
 double ViewerBasic::compute_weight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression){
-    double sum_w, sum_dist = 0;
+
     double weight = 0;
-    double prec = 0;
+    cv::Mat frame = win.getCVMatCam();
     for (unsigned int i = 0; i < 68; i++){
 
         double x_offset = currentPose.at(27).x - expression.at(27).x;
@@ -573,22 +580,16 @@ double ViewerBasic::compute_weight(std::vector<cv::Point2f> currentPose, std::ve
                                cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset));
 
         // smooth
-        
-        dist = pow(dist, .20);
-    
-        sum_dist += dist;
+
         if (dist == 0.0) dist = 0.01;
             
-        sum_w += 1 / (dist);
+        weight = 1 / pow(dist, 1.2);
 
-        weight = (sum_w / (sum_dist)) - 0.2;
-        if (weight > 1.0) weight = 1.0;
-        if (weight < 0.1) weight = 0.01;
+        // if (weight > 1.0) weight = 1.0;
+        // if (weight < 0.1) weight = 0.01;
 
         // std::cout << "Sum of distances | Sum of Weights | Weight value : " << sum_dist << " | " << sum_w << " | " << val << "\n";
-        drawMarker(win.getCVMatCam(), cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset) , cv::Scalar(255, 255, 0), 0, 10);
-        sum_w = 0;
-        sum_dist = 0;
+        drawMarker(frame, cv::Point2d(expression.at(i).x + x_offset, expression.at(i).y + y_offset) , cv::Scalar(255, 255, 0), 0, 10);
     }
 
     return weight;
@@ -652,15 +653,15 @@ void ViewerBasic::getPose(std::vector<dlib::full_object_detection> shapes, std::
 void ViewerBasic::init_blendshapes(){
     // //! https://perso.univ-lyon1.fr/jean-claude.iehl/Public/educ/M1IMAGE/html/group__tuto__mesh__buffer.html
     program_blendshape = 0;
-    program_blendshape = read_program("../../data/shaders/blendshape.glsl");
+    program_blendshape = read_program("../data/shaders/blendshape.glsl");
     program_print_errors(program_blendshape);
 
     //! chargement des differentes poses
-    m_neutral = read_mesh("../../data/blendshapes/Neutral.obj");
-    m_jawOpen = read_mesh("../../data/blendshapes/jawOpen.obj");
-    m_jawLeft = read_mesh("../../data/blendshapes/mouthSmileLeft.obj");
-    m_jawRight = read_mesh("../../data/blendshapes/mouthSmileRight.obj");
-    m_eyeBrowsRaised = read_mesh("../../data/blendshapes/browInnerUp.obj");
+    m_neutral = read_mesh("../data/blendshapes/Neutral.obj");
+    m_jawOpen = read_mesh("../data/blendshapes/jawOpen.obj");
+    m_jawLeft = read_mesh("../data/blendshapes/mouthSmileLeft.obj");
+    m_jawRight = read_mesh("../data/blendshapes/mouthSmileRight.obj");
+    m_eyeBrowsRaised = read_mesh("../data/blendshapes/browInnerUp.obj");
 
 
     if(m_neutral.normal_buffer_size() == 0)
@@ -687,21 +688,35 @@ void ViewerBasic::draw_blendshapes(){
     //pour l'instant, les obj n'ont pas de vertex normal/color/texcoord 
     glUseProgram(program_blendshape);
     
-    Transform model = Identity() * Scale(50,50,50);
+    Transform model = Identity() * Translation(gui.translation[0], gui.translation[1],gui.translation[2] ) * Scale(50,50,50);
     
     Transform view = m_camera.view() ;
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
 
-    Transform mv = view * model * transformModel * rotationModel;
-    mvp = projection * mv;
-
+    if (gui.translationEnabled)
+    {
+        Transform mv = view * model * transformModel * rotationModel;
+        mvp = projection * mv;
+        program_uniform(program_blendshape, "mvMatrix", mv);
     program_uniform(program_blendshape, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
+
+    }
+    else
+    {
+        Transform mv = view * model * rotationModel;
+        mvp = projection * mv;
+        program_uniform(program_blendshape, "mvMatrix", mv);
+    program_uniform(program_blendshape, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
+
+    }
+
     program_uniform(program_blendshape, "mvpMatrix", mvp);
-    program_uniform(program_blendshape, "mvMatrix", mv);
     
+
+    program_uniform(program_blendshape, "view_pos",view);
     program_uniform(program_blendshape, "mesh_color", m_neutral.default_color());
     program_uniform(program_blendshape, "light", view(gl.light()));
-    program_uniform(program_blendshape, "light_color", White());
+    program_uniform(program_blendshape, "light_color", Color(gui.color[0], gui.color[1], gui.color[2]));
 
     program_uniform(program_blendshape, "w_jawOpen", w_jawOpen);
     program_uniform(program_blendshape, "w_jawLeft", w_jawLeft);
