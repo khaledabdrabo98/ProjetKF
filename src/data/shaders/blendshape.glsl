@@ -100,7 +100,7 @@
 
 
 #ifdef FRAGMENT_SHADER
-
+uniform bool third;
 #ifdef USE_TEXCOORD
     in vec2 vertex_texcoord;
     uniform sampler2D diffuse_color;
@@ -172,11 +172,15 @@ void main( )
     normal= normalize(cross(t, b));
 #endif
 
+
+
 #ifdef USE_CUBEMAP
     vec3 I = normalize(vertex_position - cameraPos); //vecteur incident
     vec3 R = reflect(I, normalize(vertex_normal)); //reflection
-
-    color = color * vec4(texture(skybox, R).rgb, 1.0);
+    if(!third)
+        color = color * vec4(texture(skybox, R).rgb, 1.0);
+    else 
+        color = color;
     
 #endif
 
