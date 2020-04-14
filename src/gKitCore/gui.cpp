@@ -1,3 +1,12 @@
+/**
+ * @file gui.cpp
+ *
+ * @brief Classe representant l'interface graphique
+ *
+ * @author Féras Ghandouri
+ * 
+ */
+
 #include "gui.h"
 
 Gui::Gui() 
@@ -9,6 +18,14 @@ Gui::Gui()
     enable_cbp = false;
      
 }
+
+/** Initialise ImGui
+*
+*   @brief Initialise ImGui avec le contexte OpenGL et fenêtre SDL
+*
+*   @param window  Fenêtre SDL
+*   @param context Contexte OpenGL
+*/
 
 
 void Gui::init(SDL_Window *window, SDL_GLContext context)
@@ -22,11 +39,29 @@ void Gui::init(SDL_Window *window, SDL_GLContext context)
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
+/** Setter 
+*
+*   @brief Fonction de callback : enregistre le choix de l'utilisateur
+*
+*   @param id  Id de l'expression à choisir
+*
+*/
+
+
 void Gui::set_expr(unsigned int id)
 {
     if(id >= 0 && id < MAX_EXPR)
         expr[id] = true;
 }
+
+
+/** Setter 
+*
+*   @brief Bouton ImGui
+*
+*   @param label  Texte du bouton
+*   @param id     Id de l'element choisi
+*/
 
 
 void Gui::ButtonSetExpr(const char* label, unsigned int id ) {
@@ -46,6 +81,12 @@ void Gui::ButtonSetExpr(const char* label, unsigned int id ) {
     
     
 }
+
+/**  
+*
+*   @brief Affichage de l'interface ImGui
+*
+*/
 
 void Gui::draw()
 {

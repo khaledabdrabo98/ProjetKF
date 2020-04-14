@@ -1,3 +1,13 @@
+/**
+ * @file ViewerBasic.cpp
+ *
+ * @brief Classe principale gérant le rendu et l'animation
+ *s
+ * @author Féras Ghandouri - Khaled Abdrabo
+ * 
+ */
+
+
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -12,10 +22,6 @@ using namespace std;
 
 #define MAX_POSES 5
 
-
-/////////////////////////////
-//! Gkit init functions 
-/////////////////////////////  
 
 ViewerBasic::ViewerBasic() : App(SCREEN_W, SCREEN_H), mb_cullface(true), mb_wireframe(false), b_draw_grid(true), b_draw_axe(true)
 {
@@ -38,6 +44,9 @@ void ViewerBasic::help()
 }
 
 
+/**  
+*   @brief Initialise OpenGL, les modeles 3D et charge le detecteur pour Dlib
+*/
 
 int ViewerBasic::init()
 {
@@ -78,7 +87,7 @@ int ViewerBasic::init()
     init_cube();
     init_quad();
     init_skybox();
-    init_tex_cubemap();
+    init_tex_cubemap(m_env_map);
 
     m_tex_debug = read_texture(3, "../data/debug2x2red.png");
     
@@ -98,6 +107,12 @@ int ViewerBasic::init()
 
     return 1;
 }
+
+
+/**
+*   @brief Inialisation d'un modele 3D
+*/
+//@{
 
 void ViewerBasic::init_axe(){
     m_axe = Mesh(GL_LINES);
@@ -130,7 +145,6 @@ void ViewerBasic::init_grid(){
 
         }
 }
-
 
 void ViewerBasic::init_cube()
 {
@@ -177,32 +191,6 @@ void ViewerBasic::init_skybox(){
     
 }
 
-void ViewerBasic::init_tex_cubemap()
-{  
-    // m_skybox = Mesh(GL_TRIANGLE_STRIP);
-
-    std::string id = to_string(gui.cubemap_id);
-    
-    std::vector<std::string> faces = 
-    {
-        "../data/cubemap/0"+id+"/x_pos.jpg",
-        "../data/cubemap/0"+id+"/x_neg.jpg",
-        "../data/cubemap/0"+id+"/y_pos.jpg",
-        "../data/cubemap/0"+id+"/y_neg.jpg",
-        "../data/cubemap/0"+id+"/z_neg.jpg",
-        "../data/cubemap/0"+id+"/z_pos.jpg"
-    };
-    
-    // cubemap split in 6 faces 
-    m_env_map = make_texture_cubemap(faces) ;
-    
-    
-    program_cubemap = read_program("../data/shaders/cubemap.glsl");
-    program_print_errors(program_cubemap);
-
-
-}
-
 void ViewerBasic::init_quad()
 {
     m_quad = Mesh(GL_TRIANGLE_STRIP);
@@ -223,9 +211,12 @@ void ViewerBasic::init_quad()
     m_quad.vertex(  1,  1, 0 );
 }
 
-/////////////////////////////
-//! Gkit Render functions 
-/////////////////////////////  
+//@}
+
+/** 
+ *  @brief  Appelée dans la boucle de rendu, rafraîchit l'écran et affiche les modeles 3D
+ */
+
 int ViewerBasic::render()
 {
     // Efface l'ecran
@@ -251,9 +242,12 @@ int ViewerBasic::render()
     return 1;
 }
 
-/////////////////////////////
-//! Gkit draw functions
-/////////////////////////////  
+/** 
+ *  @name Fonctions d'affichage 
+ *  @brief  Documentation for 2 functions
+ *  @param  T Transformation à appliquer au modele à afficher
+ */
+///@{
 
 void ViewerBasic::draw(const Transform& T,  Mesh &mesh ){
     gl.model(T);
@@ -297,9 +291,8 @@ void ViewerBasic::draw_quad(const Transform& T, const GLuint &Tex)
 	gl.draw(m_quad);
 }
 
-/////////////////////////////
-//! Gkit camera functions
-///////////////////////////// 
+///@}
+
 
 void ViewerBasic::manageCameraLight()
 {
@@ -356,9 +349,10 @@ void ViewerBasic::manageCameraLight()
     gl.lighting(true);
 }
 
-/////////////////////////////
-//! openCV & dlib
-///////////////////////////// 
+/** 
+*   @brief Initialise la detection faciale de Dlib
+*/
+
 
 void ViewerBasic::loadFaceDetectionModels(){
     // Load face detection and pose estimation models.
@@ -386,7 +380,7 @@ void ViewerBasic::loadFaceDetectionModels(){
 
 void ViewerBasic::computePnP(){
     
-    //need to make sure that there is at least 1 face present to use the PnP function
+    // Need to make sure that there is at least 1 face present to use the PnP function
     if(faceDetected){
 
         image_points.push_back( currentPose[33] );    // Nose tip
@@ -411,7 +405,6 @@ void ViewerBasic::computePnP(){
         // Solve for pose
         solvePnP(model_points, image_points, camera_matrix, dist_coeffs, rotation_vector, translation_vector);
 
-        
         // Project a 3D point (0, 0, 1000.0) onto the image plane.
         // We use this to draw a line sticking out of the nose
         
@@ -436,38 +429,45 @@ void ViewerBasic::computePnP(){
     image_points.clear();
 }
 
-void ViewerBasic::savePoseForCalibration(std::vector<dlib::full_object_detection> tab_shapes){
-    // Capture des expression
+/** Fonction de calibration
+*
+*   @brief Sauvegarde les 68 points des chaque pose que l'utilisateur choisi 
+*
+*   @param tab_shapes Tableau contenant sur chaque case les 68 points des visages détectés
+*/
 
-    if(gui.expr[0]){
-        std::cout << "[saving neutral pose...]\n";
+
+void ViewerBasic::savePoseForCalibration(std::vector<dlib::full_object_detection> tab_shapes){
+    
+    if(gui.expr[0]) {
+        std::cout << "[Saving neutral pose...]\n";
         getPose(tab_shapes, p_neutral, 0);
         gui.expr[0] = false;
 
     }
 
-    if(gui.expr[1]){
+    if(gui.expr[1]) {
         std::cout << "[Saving pose : Jaw Open]\n";
         getPose(tab_shapes, p_jawOpen, 1);
         gui.expr[1] = false;
         
     }
 
-    if(gui.expr[2]){
+    if(gui.expr[2]) {
         std::cout << "[Saving pose : Jaw Left]\n";
         getPose(tab_shapes, p_jawLeft, 2);
         gui.expr[2] = false;
         
     }
 
-    if(gui.expr[3]){
+    if(gui.expr[3]) {
         std::cout << "[Saving  jaw right pose]\n";
         getPose(tab_shapes, p_jawRight, 3);
         gui.expr[3] = false;
         
     }
 
-    if(gui.expr[4]){
+    if(gui.expr[4]) {
         std::cout << "[Saving eyebrows up]\n";
         getPose(tab_shapes, p_eyeBrowsRaised, 4);
         gui.expr[4] = false;
@@ -476,7 +476,7 @@ void ViewerBasic::savePoseForCalibration(std::vector<dlib::full_object_detection
 
     if(gui.cubemapChanged){
         std::cout << "[Changing cubemap]\n";
-        init_tex_cubemap();
+        init_tex_cubemap(m_env_map);
         gui.cubemapChanged = false;
     }
 
@@ -490,6 +490,14 @@ void ViewerBasic::savePoseForCalibration(std::vector<dlib::full_object_detection
         w_eyeBrowsRaised = compute_weight(currentPose, p_eyeBrowsRaised);   
     }
 }
+
+/** Fonction de capture webcam
+*
+*   @brief Récupère l'image de la webcam et la transforme en image exploitable par Dlib 
+*   @brief Sauvegarde aussi les 68 points de la pose filmée   
+*
+*   @param out Image à remplir en format OpenCV
+*/
 
 int ViewerBasic::doCapture(cv::Mat &out)
 {
@@ -508,10 +516,7 @@ int ViewerBasic::doCapture(cv::Mat &out)
         
         dlib::cv_image<dlib::bgr_pixel> cimg(out);
         
-        // Detect faces
-        if(framecount % 2 == 0) {
-            
-        }
+
         std::vector<dlib::rectangle> faces = detector(cimg);
         std::vector<dlib::full_object_detection> shapes;
         
@@ -551,6 +556,12 @@ int ViewerBasic::doCapture(cv::Mat &out)
     return 0;
 }
 
+/** Calcule les poids entre deux poses pour l'interpolation par distance inverse
+*
+*   @param currentPose Les 68 points filmés
+*   @param expression  Les 68 points de la pose sauvegardée
+*
+*/
 
 double ViewerBasic::compute_weight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression){
 
@@ -581,9 +592,12 @@ double ViewerBasic::compute_weight(std::vector<cv::Point2f> currentPose, std::ve
 
 }
 
-double ViewerBasic::distance(cv::Point2f a,cv::Point2f b ){
-    return sqrtf( std::pow(b.x - a.x, 2) + std::pow(b.y - a.y, 2) );
-}
+
+/** Affiche message de debug à l'écran pour la pose sauvegardée
+*
+*   @param id Identifiant de la pose sauvegardée
+*
+*/
 
 void ViewerBasic::print_pose_debug(unsigned int id){
     // Afficge à l'écran un message de debug pour la capture des poses.
@@ -613,11 +627,18 @@ void ViewerBasic::print_pose_debug(unsigned int id){
     }
 }
 
+/** Récupère la pose filmée et la sauvegarde
+*
+*   @param shapes Le ou les visages filmées
+*   @param out    Tableau vide destiné à être rempli par les points de la pose captée
+*   @param id     Identifiant de la pose captée
+*/
+
 void ViewerBasic::getPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out, unsigned int id){
     // Récupère les coordonnées des point caractéristique du visage (2D)
     
     if(faceDetected){
-        for (unsigned long j = 0; j < 68; j++){
+        for (unsigned int j = 0; j < 68; j++){
             cv::Point2f point(shapes[0].part(j).x(), shapes[0].part(j).y());
             out.push_back(point);            
         }
@@ -631,17 +652,20 @@ void ViewerBasic::getPose(std::vector<dlib::full_object_detection> shapes, std::
 }
 
 
-////////////////////////////
-//! Blendshapes functions
-////////////////////////////
+/** 
+* 
+*   @brief Configure le shader à utiliser et les modeles 3D nécessaires pour le blendshape
+*
+*/
+
 
 void ViewerBasic::init_blendshapes(){
-    // //! https://perso.univ-lyon1.fr/jean-claude.iehl/Public/educ/M1IMAGE/html/group__tuto__mesh__buffer.html
+    //! https://perso.univ-lyon1.fr/jean-claude.iehl/Public/educ/M1IMAGE/html/group__tuto__mesh__buffer.html
     program_blendshape = 0;
     program_blendshape = read_program("../data/shaders/blendshape.glsl");
     program_print_errors(program_blendshape);
 
-    //! chargement des differentes poses
+    //! Chargement des differentes poses
     m_neutral = read_mesh("../data/blendshapes/Neutral.obj");
     m_jawOpen = read_mesh("../data/blendshapes/jawOpen.obj");
     m_jawLeft = read_mesh("../data/blendshapes/mouthSmileLeft.obj");
@@ -659,8 +683,9 @@ void ViewerBasic::init_blendshapes(){
     tabMesh.push_back(m_jawRight);
     tabMesh.push_back(m_eyeBrowsRaised);
     
-    // cree un VAO qui va contenir la position des sommet de nos mesh 
+    // Cree un VAO qui va contenir la position des sommet de nos mesh 
     bs_buffer.create(tabMesh);
+
     m_neutral.release(); 
     m_jawOpen.release();
     m_jawLeft.release();
@@ -669,15 +694,24 @@ void ViewerBasic::init_blendshapes(){
  
 }
 
+/**
+*    @brief Gère l'affichage des blendshapes
+*
+*/
+
+
 void ViewerBasic::draw_blendshapes(){
-    //pour l'instant, les obj n'ont pas de vertex normal/color/texcoord 
+    // Définit le shader à utiliser
     glUseProgram(program_blendshape);
     
+    //! Camera
     Transform model = Identity() * Translation(1.5 + gui.translation[0], gui.translation[1],gui.translation[2] ) * Scale(50,50,50);
-    
     Transform view = m_camera.view() ;
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
-    program_uniform(program_blendshape, "third", gui.enable_cbp);
+    program_uniform(program_blendshape, "mvpMatrix", mvp);
+    
+
+    //! Active ou désactive le tracking de la tête pour bouger le visage dans la scène
     if (gui.translationEnabled)
     {
         Transform mv = view * model * transformModel * rotationModel;
@@ -695,14 +729,13 @@ void ViewerBasic::draw_blendshapes(){
 
     }
 
-    program_uniform(program_blendshape, "mvpMatrix", mvp);
-    
-
-    program_uniform(program_blendshape, "view_pos",view);
     program_uniform(program_blendshape, "mesh_color", m_neutral.default_color());
     program_uniform(program_blendshape, "light", view(gl.light()));
     program_uniform(program_blendshape, "light_color", Color(gui.color[0], gui.color[1], gui.color[2]));
+    program_uniform(program_blendshape, "third", gui.enable_cbp);
 
+
+    //! Les poids calculés nécéssaires à l'interpolation
     program_uniform(program_blendshape, "w_jawOpen", w_jawOpen);
     program_uniform(program_blendshape, "w_jawLeft", w_jawLeft);
     program_uniform(program_blendshape, "w_jawRight", w_jawRight);
@@ -719,12 +752,46 @@ void ViewerBasic::draw_blendshapes(){
     
 }
 
-void ViewerBasic::removeTranslationInMat44(float mat[4][4] ) {
-    for (int i = 0; i < 3; i++)
+/** 
+*
+*   @brief Initialise une cubemap dans le format OpenGL
+*   @brief Appelle make_texture_cubemap pour créer la texture
+*
+*/
+
+void ViewerBasic::init_tex_cubemap(GLuint& cubemap_tex)
+{  
+    // m_skybox = Mesh(GL_TRIANGLE_STRIP);
+
+    std::string id = to_string(gui.cubemap_id);
+    
+    std::vector<std::string> faces = 
     {
-        mat[i][3] = 1.0;
-    }
+        "../data/cubemap/0"+id+"/x_pos.jpg",
+        "../data/cubemap/0"+id+"/x_neg.jpg",
+        "../data/cubemap/0"+id+"/y_pos.jpg",
+        "../data/cubemap/0"+id+"/y_neg.jpg",
+        "../data/cubemap/0"+id+"/z_neg.jpg",
+        "../data/cubemap/0"+id+"/z_pos.jpg"
+    };
+    
+    // cubemap split in 6 faces 
+    cubemap_tex = make_texture_cubemap(faces) ;
+    
+    
+    program_cubemap = read_program("../data/shaders/cubemap.glsl");
+    program_print_errors(program_cubemap);
+
+
 }
+
+
+/** 
+*
+*   @brief Gère l'affichage de la skybox
+*   @param T Transformation à appliquer à la skybox
+*
+*/
 
 void ViewerBasic::draw_skybox(const Transform& T)
 {   
@@ -732,9 +799,6 @@ void ViewerBasic::draw_skybox(const Transform& T)
     glDepthMask(GL_FALSE);
     
 	glUseProgram(program_cubemap);
-
-    // VIEW
-    //Transform remove_translation = Transform( Vector(0.,0.,0.), Vector(0.,0.,0.), Vector(0.,0.,0.), -1.0*m_camera.view()[3] );
 
     Transform model = Identity()  * T;
     Transform view = m_camera.view();
@@ -747,9 +811,6 @@ void ViewerBasic::draw_skybox(const Transform& T)
     Transform projection = m_camera.projection(window_width(), window_height(), 45);
     Transform mv = view * model; //* transformModel * rotationModel;
     Transform mvp = projection * mv;
-
-
-    //std::cout << mvp << std::endl;
 
     program_uniform(program_cubemap, "mvpMatrix", mvp);
     program_uniform(program_cubemap, "normalMatrix", mv.normal()); // transforme les normales dans le repere camera.
@@ -768,5 +829,15 @@ void ViewerBasic::draw_skybox(const Transform& T)
     glDepthMask(GL_TRUE);
 }
 
+double ViewerBasic::distance(cv::Point2f a,cv::Point2f b ){
+    return sqrtf( std::pow(b.x - a.x, 2) + std::pow(b.y - a.y, 2) );
+}
+
+void ViewerBasic::removeTranslationInMat44(float mat[4][4] ) {
+    for (int i = 0; i < 3; i++)
+    {
+        mat[i][3] = 1.0;
+    }
+}
 
 
