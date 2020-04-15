@@ -1,6 +1,6 @@
 # ProjetKF 
 
-The project's goal was to create a software animating a 3D mesh with live recorded facial expressions.
+The project's goal was to create a software able to animate a 3D mesh with live recorded facial expressions.
 
 ### Tech
 
