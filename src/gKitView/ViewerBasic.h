@@ -182,16 +182,19 @@ protected:
 	void draw_quad(const Transform& T, const GLuint &Tex);
     void manageCameraLight();
 
-    // OpenGL
-    Buffers bs_buffer, cubemap_buffer;
+    Buffers bs_buffer,
+    cubemap_buffer;
 
-    // Cubemap
+    ///@{
+        /** Partie cubemap **/
     GLuint m_env_map;
     GLuint program_cubemap;
-    void init_tex_cubemap(GLuint& cubemap_tex);
-    void draw_skybox(const Transform& T);
-    
-    // Dlib + OpenCV
+    void init_tex_cubemap(GLuint &cubemap_tex);
+    void draw_skybox(const Transform &T);
+    ///@}
+
+    ///@{
+        /** Partie reconnance faciale **/
     dlib::shape_predictor pose_model;
     dlib::frontal_face_detector detector;
     void loadFaceDetectionModels();
@@ -199,9 +202,12 @@ protected:
     bool faceDetected;
     std::vector<cv::Point2f> faceKeyPoints;
 
-    //! PNP
-    // Pour le calcul de la rotation et translation du visage
-     void computePnP();
+    ///@}
+
+    /** Pour le calcul de la rotation et translation du visage **/
+    void computePnP();
+    ///@{
+        /** Partie PnP**/
     std::vector<cv::Point2f> image_points;
     std::vector<cv::Point3d> model_points;
     cv::Mat rotation_vector;
@@ -209,22 +215,30 @@ protected:
     // Variables qui appliquent la rotation et la translation sur le modele 3D
     Transform transformModel;
     Transform rotationModel;
+    ///@}
+
+
+    void init_blendshapes();
+    /** Affichage des blendshapes avec un shader custom **/
+    void draw_blendshapes();
 
     //! POSES
-    //! Affichage des blendshapes avec un shader custom
-    void init_blendshapes();
-    void draw_blendshapes();
-    // Id de notre shader blendshape
+
     GLuint program_blendshape;
     Transform mvp;
     cv::Mat camMatrix;
 
+
+    ///@{
+        /** Partie capture expressions **/
     // Stocke l'état d'une pose (capturée ou non)
     bool pose_taken[5] = {false};
     // Coordonnées des 68 points dans chaque expression
     std::vector<cv::Point2f> p_neutral,p_jawOpen,p_jawLeft,p_jawRight,p_eyeBrowsRaised;
 
+
     Mesh m_neutral, m_jawOpen, m_jawRight, m_jawLeft, m_eyeBrowsRaised;
+
     float w_neutral, w_jawOpen, w_jawLeft, w_jawRight, w_eyeBrowsRaised;
     // Stocke la pose filmée
     std::vector<cv::Point2f> currentPose;
@@ -232,7 +246,7 @@ protected:
     void getPose(std::vector<dlib::full_object_detection> shapes, std::vector<cv::Point2f> &out, unsigned int id);
     double compute_weight(std::vector<cv::Point2f> currentPose, std::vector<cv::Point2f> expression);
     void savePoseForCalibration(std::vector<dlib::full_object_detection> tab_shapes);
-
+    ///@}
     // Fonction utilitaires
     void removeTranslationInMat44(float mat[4][4] );
     double distance(cv::Point2f a, cv::Point2f b);

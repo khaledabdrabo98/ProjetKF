@@ -16,20 +16,29 @@ class Gui
     public:
         Gui();
         ~Gui();
-
+        
         void init(SDL_Window *window, SDL_GLContext context);
         void draw();
 
-        bool expr[MAX_EXPR];
-        unsigned int cubemap_id;
-        bool cubemapChanged;
-        float color[4] = { 1.0f,1.0f,1.0f,1.0f };
-        float translation[3] = {0.0, 0.0, 0.0}; 
+        //!Contient l'état d'une expression (sauvegardée ou non)
+        bool expr[MAX_EXPR];   
+        //! Id de la cubemap actuellement affichée
+        unsigned int cubemap_id; 
+        //! Permet de notifier au prog. principal le changement 
+        bool cubemapChanged;   
+        //!Valeurs du color picker 
+        float color[4] = { 1.0f,1.0f,1.0f,1.0f }; 
+        //!Valeurs du slider de translation
+        float translation[3] = {0.0, 0.0, 0.0};
 
+        //!Active ou desactive le tracking du visage
         bool translationEnabled;
-        float pow_interp;
+         //!Sensibilié de l'interpolation
+        float pow_interp;  
+        //!Facteur de diminution de la resolution de capture
         float downsample_ratio;
-        bool enable_cbp;
+        //!Active ou desactive la cubemap
+        bool enable_cbp;    
 
     protected:
         
